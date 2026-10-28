@@ -322,8 +322,14 @@ public class ApiServer {
                 String model = require(body, "model");
                 String plate = require(body, "plate");
                 double rate  = Double.parseDouble(require(body, "rate"));
-                Integer range = body.containsKey("batteryRange") ? Integer.parseInt(body.get("batteryRange")) : null;
-                Integer cc    = body.containsKey("engineCc")     ? Integer.parseInt(body.get("engineCc"))     : null;
+                Integer range = null;
+                if (body.get("batteryRange") != null && !body.get("batteryRange").isBlank()) {
+                    try { range = Integer.parseInt(body.get("batteryRange").trim()); } catch (Exception ignored) {}
+                }
+                Integer cc = null;
+                if (body.get("engineCc") != null && !body.get("engineCc").isBlank()) {
+                    try { cc = Integer.parseInt(body.get("engineCc").trim()); } catch (Exception ignored) {}
+                }
                 String colour   = body.getOrDefault("colour", "Unknown");
                 String fuelType = body.getOrDefault("fuelType", "PETROL");
                 int seats = Integer.parseInt(body.getOrDefault("numSeats", "2"));

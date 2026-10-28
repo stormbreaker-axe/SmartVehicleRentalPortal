@@ -1356,7 +1356,11 @@
       try {
         const res = await fetch(`${API}/vehicles`);
         const vehicles = await res.json();
-        document.getElementById('s-vehicles').textContent = vehicles.length;
+        const localVehicles = getLocalVehicles();
+        const map = new Map();
+        (vehicles || []).forEach(v => map.set(v.id, v));
+        localVehicles.forEach(v => map.set(v.id, v));
+        document.getElementById('s-vehicles').textContent = map.size;
       } catch (e) { }
     }
 
@@ -1600,11 +1604,19 @@
   <div class="stat-cards" id="dashStats"><div style="color:var(--muted)">Loading...</div></div>
   <div id="dashOverdue"></div>`;
       try {
-        const [vehicles, reservations, customers] = await Promise.all([
-          api('/vehicles', null, 'GET'),
+        const localVehicles = getLocalVehicles();
+        const [apiVehicles, reservations, customers] = await Promise.all([
+          localVehicles.length > 0 ? api('/vehicles', { customVehicles: localVehicles }).catch(() => api('/vehicles', null, 'GET')) : api('/vehicles', null, 'GET'),
           api('/reservations', { action: 'all', token: STATE.token }),
           api('/customer', { action: 'all', token: STATE.token })
         ]);
+        const map = new Map();
+        (apiVehicles || []).forEach(v => map.set(v.id, v));
+        localVehicles.forEach(v => {
+          if (!map.has(v.id)) map.set(v.id, v);
+          else map.set(v.id, Object.assign({}, map.get(v.id), v));
+        });
+        const vehicles = Array.from(map.values());
         const avail = vehicles.filter(v => v.available).length;
         const confirmed = reservations.filter(r => r.status === 'CONFIRMED').length;
         const revenue = reservations.filter(r => r.status === 'COMPLETED').reduce((s, r) => s + r.totalCost, 0);
@@ -1650,7 +1662,24 @@
   </div>
   <div class="grid3" id="vehicleGrid"><div style="color:var(--muted)">Loading...</div></div>`;
       try {
-        window._allVehicles = await api('/vehicles', null, 'GET');
+        const localVehicles = getLocalVehicles();
+        let apiVehicles = [];
+        try {
+          if (localVehicles.length > 0) {
+            apiVehicles = await api('/vehicles', { customVehicles: localVehicles });
+          } else {
+            apiVehicles = await api('/vehicles', null, 'GET');
+          }
+        } catch (_) {
+          try { apiVehicles = await api('/vehicles', null, 'GET'); } catch (_) {}
+        }
+        const map = new Map();
+        (apiVehicles || []).forEach(v => map.set(v.id, v));
+        localVehicles.forEach(v => {
+          if (!map.has(v.id)) map.set(v.id, v);
+          else map.set(v.id, Object.assign({}, map.get(v.id), v));
+        });
+        window._allVehicles = Array.from(map.values()).sort((a, b) => a.id - b.id);
         filterVehicles();
       } catch (e) { document.getElementById('vehicleGrid').innerHTML = `<div class="alert alert-error">${e.message}</div>`; }
     }
@@ -1710,6 +1739,11 @@
     async function toggleAvailability(id, avail) {
       try {
         await api('/admin', { action: 'setAvailability', token: STATE.token, vehicleId: id, available: String(avail) });
+        updateLocalVehicle(id, { available: avail });
+        if (window._allVehicles) {
+          const v = window._allVehicles.find(x => x.id === id);
+          if (v) v.available = avail;
+        }
         toast('Availability updated', 'success');
         loadVehicles();
       } catch (e) { toast(e.message, 'error'); }
@@ -1733,6 +1767,25 @@
     }
 
     /* ─── Local Sync Helpers ─────────────────────────────────── */
+    function getLocalVehicles() {
+      try { return JSON.parse(localStorage.getItem('svrp_custom_vehicles') || '[]'); } catch (_) { return []; }
+    }
+    function saveLocalVehicle(v) {
+      try {
+        const list = getLocalVehicles();
+        const idx = list.findIndex(x => x.id === v.id || (v.plate && x.plate === v.plate));
+        if (idx >= 0) list[idx] = Object.assign({}, list[idx], v); else list.push(v);
+        localStorage.setItem('svrp_custom_vehicles', JSON.stringify(list));
+      } catch (_) {}
+    }
+    function updateLocalVehicle(id, u) {
+      try {
+        const list = getLocalVehicles();
+        const item = list.find(x => x.id === id);
+        if (item) { Object.assign(item, u); localStorage.setItem('svrp_custom_vehicles', JSON.stringify(list)); }
+      } catch (_) {}
+    }
+
     function getLocalReservations() {
       try { return JSON.parse(localStorage.getItem('svrp_reservations') || '[]'); } catch (_) { return []; }
     }
@@ -1900,25 +1953,85 @@
     async function submitAddVehicle() {
       const msgEl = document.getElementById('addVehicleMsg');
       msgEl.innerHTML = '';
+      const type = document.getElementById('avType').value;
+      const make = document.getElementById('avMake').value.trim();
+      const model = document.getElementById('avModel').value.trim();
+      const plate = document.getElementById('avPlate').value.trim().toUpperCase();
+      const rate = document.getElementById('avRate').value.trim();
+      const colour = document.getElementById('avColour').value.trim() || 'Unknown';
+      const fuelType = document.getElementById('avFuel').value;
+      const numSeats = document.getElementById('avSeats').value || '2';
+      const kmsTravelled = document.getElementById('avKms').value || '0';
+      const batteryRange = document.getElementById('avBattery')?.value || '';
+      const engineCc = document.getElementById('avCc')?.value || '';
+
+      if (!make || !model || !plate || !rate) {
+        msgEl.innerHTML = '<div class="alert alert-error">Please fill in make, model, license plate, and daily rate.</div>';
+        return;
+      }
+
       const body = {
         action: 'addVehicle', token: STATE.token,
-        vehicleType: document.getElementById('avType').value,
-        make: document.getElementById('avMake').value,
-        model: document.getElementById('avModel').value,
-        plate: document.getElementById('avPlate').value,
-        rate: document.getElementById('avRate').value,
-        colour: document.getElementById('avColour').value,
-        fuelType: document.getElementById('avFuel').value,
-        numSeats: document.getElementById('avSeats').value,
-        kmsTravelled: document.getElementById('avKms').value,
+        vehicleType: type,
+        make,
+        model,
+        plate,
+        rate,
+        colour,
+        fuelType,
+        numSeats,
+        kmsTravelled,
       };
-      const t = body.vehicleType;
-      if (t === 'ELECTRIC_SCOOTER') body.batteryRange = document.getElementById('avBattery').value;
-      else body.engineCc = document.getElementById('avCc').value;
+      if (type === 'ELECTRIC_SCOOTER') {
+        if (batteryRange) body.batteryRange = batteryRange;
+      } else {
+        if (engineCc) body.engineCc = engineCc;
+      }
+
       try {
         const res = await api('/admin', body);
-        msgEl.innerHTML = `<div class="alert alert-success">✓ Vehicle added! ID: #${res.vehicleId}</div>`;
-        toast('Vehicle added successfully!', 'success');
+        const vid = res.vehicleId || (Date.now() % 100000);
+        const newVehicle = res.vehicle || {
+          id: vid,
+          type: type.toUpperCase(),
+          make,
+          model,
+          plate,
+          rate: parseFloat(rate),
+          colour,
+          fuelType,
+          numSeats: parseInt(numSeats, 10),
+          kmsTravelled: parseInt(kmsTravelled, 10),
+          batteryRange: body.batteryRange ? parseInt(body.batteryRange, 10) : null,
+          engineCc: body.engineCc ? parseInt(body.engineCc, 10) : null,
+          available: true,
+          imageUrl: null
+        };
+        // Persist locally so it instantly reflects in fleet view across all tabs
+        saveLocalVehicle(newVehicle);
+
+        // Also proactively sync with serverless backend
+        try {
+          await api('/vehicles', { customVehicles: getLocalVehicles() });
+        } catch (_) {}
+
+        msgEl.innerHTML = `<div class="alert alert-success">
+          <i class="fa-solid fa-circle-check"></i> Vehicle added! ID: #${vid} (${esc(make)} ${esc(model)})
+          <div style="margin-top:10px;">
+            <button class="btn btn-sm btn-primary" onclick="navigate('vehicles')"><i class="fa-solid fa-car"></i> View in Fleet</button>
+          </div>
+        </div>`;
+        toast(`Vehicle #${vid} added to fleet!`, 'success');
+
+        // Reset inputs
+        document.getElementById('avMake').value = '';
+        document.getElementById('avModel').value = '';
+        document.getElementById('avPlate').value = '';
+        document.getElementById('avRate').value = '';
+        document.getElementById('avColour').value = '';
+        document.getElementById('avKms').value = '';
+        if (document.getElementById('avBattery')) document.getElementById('avBattery').value = '';
+        if (document.getElementById('avCc')) document.getElementById('avCc').value = '';
       } catch (e) {
         msgEl.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
       }
@@ -2011,7 +2124,8 @@
       const e = document.getElementById('resEnd').value;
       if (!s || !e || e < s) return;
       try {
-        const res = await api('/reservations', { action: 'check', vehicleId: currentVehicleId, startDate: s, endDate: e });
+        const vData = (window._allVehicles || []).find(v => v.id === currentVehicleId);
+        const res = await api('/reservations', { action: 'check', vehicleId: currentVehicleId, startDate: s, endDate: e, vehicleData: vData });
         const preview = document.getElementById('costPreview');
         preview.classList.remove('hidden');
         const days = Math.floor((new Date(e) - new Date(s)) / (86400000)) + 1;
@@ -2031,7 +2145,8 @@
       errEl.classList.add('hidden');
       if (!s || !e) { errEl.textContent = 'Select both dates'; errEl.classList.remove('hidden'); return; }
       try {
-        const res = await api('/reservations', { action: 'reserve', token: STATE.token, vehicleId: currentVehicleId, startDate: s, endDate: e });
+        const vData = (window._allVehicles || []).find(v => v.id === currentVehicleId);
+        const res = await api('/reservations', { action: 'reserve', token: STATE.token, vehicleId: currentVehicleId, startDate: s, endDate: e, vehicleData: vData });
         const d1 = new Date(s), d2 = new Date(e);
         const days = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
         const cost = res.totalCost;

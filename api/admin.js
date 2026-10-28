@@ -19,14 +19,16 @@ module.exports = (req, res) => {
       if (verifyToken(body.token) !== 'ADMIN') {
         return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       }
-      const id = store.vehicles.length + 1;
+      store.vehicles = store.vehicles || [];
+      const maxId = store.vehicles.length > 0 ? Math.max(...store.vehicles.map(v => v.id || 0)) : 6;
+      const id = maxId + 1;
       const v = {
         id,
         type: String(body.vehicleType || '').toUpperCase(),
-        make: body.make,
-        model: body.model,
-        plate: body.plate,
-        rate: parseFloat(body.rate),
+        make: String(body.make || '').trim(),
+        model: String(body.model || '').trim(),
+        plate: String(body.plate || '').trim().toUpperCase(),
+        rate: parseFloat(body.rate) || 0,
         available: true,
         batteryRange: body.batteryRange ? parseInt(body.batteryRange, 10) : null,
         engineCc: body.engineCc ? parseInt(body.engineCc, 10) : null,
@@ -38,7 +40,7 @@ module.exports = (req, res) => {
       };
       store.vehicles.push(v);
       saveStore();
-      return res.status(200).json({ ok: true, vehicleId: id });
+      return res.status(200).json({ ok: true, vehicleId: id, vehicle: v });
     } else if (action === 'setAvailability') {
       if (verifyToken(body.token) !== 'ADMIN') {
         return res.status(403).json({ ok: false, error: 'Not logged in as admin' });

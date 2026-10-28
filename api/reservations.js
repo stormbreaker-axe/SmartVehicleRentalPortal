@@ -17,7 +17,15 @@ module.exports = (req, res) => {
       const s = body.startDate;
       const e = body.endDate;
       if (!s || !e || e < s) return res.status(400).json({ ok: false, error: 'Invalid dates' });
-      const v = store.vehicles.find(veh => veh.id === vehId);
+      
+      store.vehicles = store.vehicles || [];
+      let v = store.vehicles.find(veh => veh.id === vehId);
+      if (!v && body.vehicleData && body.vehicleData.id === vehId) {
+        v = body.vehicleData;
+        store.vehicles.push(v);
+        saveStore();
+      }
+
       if (!v) return res.status(404).json({ ok: false, error: 'Vehicle not found' });
       if (!v.available) return res.status(400).json({ ok: false, error: 'Vehicle not available' });
 
@@ -48,7 +56,15 @@ module.exports = (req, res) => {
     } else if (action === 'check') {
       const vehId = parseInt(body.vehicleId, 10);
       const s = body.startDate, e = body.endDate;
-      const v = store.vehicles.find(veh => veh.id === vehId);
+      
+      store.vehicles = store.vehicles || [];
+      let v = store.vehicles.find(veh => veh.id === vehId);
+      if (!v && body.vehicleData && body.vehicleData.id === vehId) {
+        v = body.vehicleData;
+        store.vehicles.push(v);
+        saveStore();
+      }
+
       if (!v) return res.status(404).json({ ok: false, error: 'Vehicle not found' });
       const conflict = store.reservations.some(r => r.vehicleId === vehId && r.status === 'CONFIRMED' && r.startDate <= e && r.endDate >= s);
       const d1 = new Date(s), d2 = new Date(e);
@@ -136,7 +152,7 @@ module.exports = (req, res) => {
       const r = store.reservations.find(res => res.id === rid);
       if (!r) return res.status(404).json({ ok: false, error: 'Reservation not found' });
       const c = store.customers.find(cust => cust.id === r.customerId);
-      const v = store.vehicles.find(veh => veh.id === r.vehicleId);
+      const v = (store.vehicles || []).find(veh => veh.id === r.vehicleId) || (body.vehicleData && body.vehicleData.id === r.vehicleId ? body.vehicleData : null);
       const overdueDays = Math.max(0, Math.floor((new Date() - new Date(r.endDate)) / (1000 * 60 * 60 * 24)));
       return res.status(200).json({
         reservationId: rid,
