@@ -1,4 +1,4 @@
-const { store, cors, parseBody } = require('./_data');
+const { store, saveStore, createToken, verifyToken, cors, parseBody } = require('./_data');
 
 module.exports = (req, res) => {
   cors(res);
@@ -11,13 +11,14 @@ module.exports = (req, res) => {
       const u = body.username;
       const p = body.password;
       if (u === 'admin' && p === 'admin123') {
-        const token = 'admin_tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        store.sessions[token] = 'ADMIN';
+        const token = createToken('ADMIN');
         return res.status(200).json({ ok: true, token });
       }
       return res.status(400).json({ ok: false, error: 'Invalid admin credentials' });
     } else if (action === 'addVehicle') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') {
+        return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
+      }
       const id = store.vehicles.length + 1;
       const v = {
         id,
@@ -36,13 +37,17 @@ module.exports = (req, res) => {
         imageUrl: null
       };
       store.vehicles.push(v);
+      saveStore();
       return res.status(200).json({ ok: true, vehicleId: id });
     } else if (action === 'setAvailability') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') {
+        return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
+      }
       const id = parseInt(body.vehicleId, 10);
       const avail = String(body.available) === 'true';
       const v = store.vehicles.find(veh => veh.id === id);
       if (v) v.available = avail;
+      saveStore();
       return res.status(200).json({ ok: true });
     } else {
       return res.status(400).json({ ok: false, error: 'Unknown admin action: ' + action });

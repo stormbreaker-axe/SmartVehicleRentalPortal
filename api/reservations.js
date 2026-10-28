@@ -1,4 +1,4 @@
-const { store, cors, parseBody } = require('./_data');
+const { store, saveStore, verifyToken, cors, parseBody } = require('./_data');
 
 module.exports = (req, res) => {
   cors(res);
@@ -8,12 +8,11 @@ module.exports = (req, res) => {
     const action = body.action || '';
 
     if (action === 'reserve') {
-      const token = body.token;
-      const sess = store.sessions[token];
-      if (!sess || !sess.startsWith('CUSTOMER:')) {
+      const session = verifyToken(body.token);
+      if (!session || !session.startsWith('CUSTOMER:')) {
         return res.status(401).json({ ok: false, error: 'Not logged in as customer' });
       }
-      const custId = parseInt(sess.split(':')[1], 10);
+      const custId = parseInt(session.split(':')[1], 10);
       const vehId = parseInt(body.vehicleId, 10);
       const s = body.startDate;
       const e = body.endDate;
@@ -44,6 +43,7 @@ module.exports = (req, res) => {
         overdueFlagged: false
       };
       store.reservations.push(reservation);
+      saveStore();
       return res.status(200).json({ ok: true, reservationId: rid, totalCost: cost });
     } else if (action === 'check') {
       const vehId = parseInt(body.vehicleId, 10);
@@ -56,16 +56,15 @@ module.exports = (req, res) => {
       const cost = v.rate * (days > 0 ? days : 1);
       return res.status(200).json({ available: v.available && !conflict, cost });
     } else if (action === 'mine') {
-      const token = body.token;
-      const sess = store.sessions[token];
-      if (!sess || !sess.startsWith('CUSTOMER:')) {
+      const session = verifyToken(body.token);
+      if (!session || !session.startsWith('CUSTOMER:')) {
         return res.status(401).json({ ok: false, error: 'Not logged in as customer' });
       }
-      const custId = parseInt(sess.split(':')[1], 10);
+      const custId = parseInt(session.split(':')[1], 10);
       const mine = store.reservations.filter(r => r.customerId === custId);
       return res.status(200).json(mine);
     } else if (action === 'all') {
-      if (store.sessions[body.token] !== 'ADMIN') {
+      if (verifyToken(body.token) !== 'ADMIN') {
         return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       }
       return res.status(200).json(store.reservations);
@@ -76,9 +75,10 @@ module.exports = (req, res) => {
         return res.status(400).json({ ok: false, error: 'Reservation not found or already cancelled' });
       }
       r.status = 'CANCELLED';
+      saveStore();
       return res.status(200).json({ ok: true });
     } else if (action === 'markReturn') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       const rid = parseInt(body.reservationId, 10);
       const r = store.reservations.find(res => res.id === rid);
       if (!r) return res.status(404).json({ ok: false, error: 'Reservation not found' });
@@ -90,20 +90,24 @@ module.exports = (req, res) => {
       r.fineAmount = fine;
       r.fineRatePerDay = ratePerDay;
       r.status = 'COMPLETED';
+      saveStore();
       return res.status(200).json({ ok: true, fine, lateDays });
     } else if (action === 'flagOverdue') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       const rid = parseInt(body.reservationId, 10);
       const r = store.reservations.find(res => res.id === rid);
-      if (r) r.overdueFlagged = true;
+      if (r) {
+        r.overdueFlagged = true;
+        saveStore();
+      }
       return res.status(200).json({ ok: true });
     } else if (action === 'overdue') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       const today = new Date().toISOString().slice(0, 10);
       const list = store.reservations.filter(r => r.status === 'CONFIRMED' && r.endDate < today && !r.actualReturnDate && !r.overdueFlagged);
       return res.status(200).json(list);
     } else if (action === 'severelyOverdue') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       const today = new Date();
       const list = store.reservations.filter(r => {
         if (r.status !== 'CONFIRMED' || r.actualReturnDate) return false;
@@ -112,7 +116,7 @@ module.exports = (req, res) => {
       });
       return res.status(200).json(list);
     } else if (action === 'legalReport') {
-      if (store.sessions[body.token] !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Admin required' });
+      if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       const rid = parseInt(body.reservationId, 10);
       const r = store.reservations.find(res => res.id === rid);
       if (!r) return res.status(404).json({ ok: false, error: 'Reservation not found' });
