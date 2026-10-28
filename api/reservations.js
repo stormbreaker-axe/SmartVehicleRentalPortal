@@ -61,13 +61,18 @@ module.exports = (req, res) => {
         return res.status(401).json({ ok: false, error: 'Not logged in as customer' });
       }
       const custId = parseInt(session.split(':')[1], 10);
-      const mine = store.reservations.filter(r => r.customerId === custId);
+      // Return ALL statuses for this customer, newest first
+      const mine = [...store.reservations]
+        .filter(r => r.customerId === custId)
+        .sort((a, b) => b.id - a.id);
       return res.status(200).json(mine);
     } else if (action === 'all') {
       if (verifyToken(body.token) !== 'ADMIN') {
         return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       }
-      return res.status(200).json(store.reservations);
+      // Return ALL reservations (CONFIRMED, CANCELLED, COMPLETED) sorted newest first
+      const all = [...store.reservations].sort((a, b) => b.id - a.id);
+      return res.status(200).json(all);
     } else if (action === 'cancel') {
       const rid = parseInt(body.reservationId, 10);
       const r = store.reservations.find(res => res.id === rid);

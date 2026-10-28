@@ -1711,6 +1711,26 @@
       } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
     }
 
+    /* ─── Local Sync Helpers ─────────────────────────────────── */
+    function getLocalReservations() {
+      try { return JSON.parse(localStorage.getItem('svrp_reservations') || '[]'); } catch (_) { return []; }
+    }
+    function saveLocalReservation(r) {
+      try {
+        const list = getLocalReservations();
+        const idx = list.findIndex(x => x.id === r.id);
+        if (idx >= 0) list[idx] = r; else list.unshift(r);
+        localStorage.setItem('svrp_reservations', JSON.stringify(list));
+      } catch (_) {}
+    }
+    function updateLocalReservation(id, u) {
+      try {
+        const list = getLocalReservations();
+        const item = list.find(x => x.id === id);
+        if (item) { Object.assign(item, u); localStorage.setItem('svrp_reservations', JSON.stringify(list)); }
+      } catch (_) {}
+    }
+
     /* ─── All Reservations (Admin) ───────────────────────────── */
     async function loadReservations() {
       const el = document.getElementById('page-reservations');
@@ -1719,15 +1739,28 @@
     <th>ID</th><th>Customer</th><th>Vehicle</th><th>Dates</th><th>Cost</th><th>Fine</th><th>Status</th><th>Actions</th>
   </tr></thead><tbody id="resBody"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>`;
       try {
-        const list = await api('/reservations', { action: 'all', token: STATE.token });
-        document.getElementById('resBody').innerHTML = list.map(r => {
+        let list = [];
+        try {
+          list = await api('/reservations', { action: 'all', token: STATE.token });
+        } catch (_) {}
+        const localList = getLocalReservations();
+        const map = new Map();
+        list.forEach(r => map.set(r.id, r));
+        localList.forEach(r => {
+          if (!map.has(r.id)) map.set(r.id, r);
+          else map.set(r.id, Object.assign({}, map.get(r.id), r));
+        });
+        const combined = Array.from(map.values()).sort((a, b) => b.id - a.id);
+        localStorage.setItem('svrp_reservations', JSON.stringify(combined));
+
+        document.getElementById('resBody').innerHTML = combined.map(r => {
           const isOverdue = r.status === 'CONFIRMED' && new Date(r.endDate) < new Date() && !r.actualReturnDate;
           const statusClass = { CONFIRMED: 'status-confirmed', CANCELLED: 'status-cancelled', COMPLETED: 'status-completed' }[r.status] || '';
           return `<tr>
         <td>#${r.id}</td><td>#${r.customerId}</td><td>#${r.vehicleId}</td>
         <td>${r.startDate} → ${r.endDate}</td>
-        <td>₹${r.totalCost.toFixed(2)}</td>
-        <td>${r.fineAmount > 0 ? `<span style="color:var(--accent)">₹${r.fineAmount.toFixed(2)}</span>` : '—'}</td>
+        <td>₹${Number(r.totalCost || 0).toFixed(2)}</td>
+        <td>${Number(r.fineAmount) > 0 ? `<span style="color:var(--accent);font-weight:700">₹${Number(r.fineAmount).toFixed(2)}</span>` : '—'}</td>
         <td>
           <span class="status-badge ${isOverdue ? 'status-overdue' : statusClass}">${isOverdue ? '⚠️ Overdue' : r.status}</span>
           ${r.overdueFlagged ? '<span class="status-badge" style="background:rgba(244,63,94,.2);color:var(--accent);margin-left:4px">🚨 Flagged</span>' : ''}
@@ -1752,10 +1785,18 @@
   <div class="page-sub">Vehicles not returned past their due date</div>
   <div id="overdueContent"><div style="color:var(--muted)">Loading...</div></div>`;
       try {
-        const [overdue, severe] = await Promise.all([
-          api('/reservations', { action: 'overdue', token: STATE.token }),
-          api('/reservations', { action: 'severelyOverdue', token: STATE.token })
-        ]);
+        let overdue = [];
+        try {
+          overdue = await api('/reservations', { action: 'overdue', token: STATE.token });
+        } catch (_) {}
+        const localList = getLocalReservations();
+        const today = new Date().toISOString().split('T')[0];
+        localList.forEach(r => {
+          if (r.status === 'CONFIRMED' && r.endDate < today && !r.actualReturnDate && !r.overdueFlagged) {
+            if (!overdue.some(o => o.id === r.id)) overdue.push(r);
+          }
+        });
+        const severe = overdue.filter(r => Math.floor((new Date() - new Date(r.endDate)) / (86400000)) >= 7);
         // Update badge
         const badge = document.getElementById('overdueCount');
         if (badge) { badge.textContent = overdue.length; badge.classList.toggle('hidden', overdue.length === 0); }
@@ -1868,13 +1909,24 @@
       el.innerHTML = `<div class="page-title">My Bookings</div><div class="page-sub">All your reservations</div>
   <div id="myResContent"><div style="color:var(--muted)">Loading...</div></div>`;
       try {
-        const list = await api('/reservations', { action: 'mine', token: STATE.token });
-        if (!list.length) {
+        let list = [];
+        try {
+          list = await api('/reservations', { action: 'mine', token: STATE.token });
+        } catch (_) {}
+        const localList = getLocalReservations().filter(r => r.customerId === STATE.customerId);
+        const map = new Map();
+        list.forEach(r => map.set(r.id, r));
+        localList.forEach(r => {
+          if (!map.has(r.id)) map.set(r.id, r);
+          else map.set(r.id, Object.assign({}, map.get(r.id), r));
+        });
+        const combined = Array.from(map.values()).sort((a, b) => b.id - a.id);
+        if (!combined.length) {
           document.getElementById('myResContent').innerHTML = `<div class="alert alert-info">
         <i class="fa-solid fa-info-circle"></i> No reservations yet. <button class="btn btn-xs btn-primary" onclick="navigate('vehicles')">Browse Fleet →</button>
       </div>`; return;
         }
-        document.getElementById('myResContent').innerHTML = `<div class="grid2">${list.map(r => {
+        document.getElementById('myResContent').innerHTML = `<div class="grid2">${combined.map(r => {
           const statusClass = { CONFIRMED: 'status-confirmed', CANCELLED: 'status-cancelled', COMPLETED: 'status-completed' }[r.status] || '';
           const isOverdue = r.status === 'CONFIRMED' && new Date(r.endDate) < new Date();
           return `<div class="card">
@@ -1885,8 +1937,8 @@
         <div style="font-size:.87rem;color:var(--muted);line-height:1.9">
           🚗 Vehicle #${r.vehicleId}<br/>
           📅 ${r.startDate} → ${r.endDate}<br/>
-          💰 Total: <b style="color:var(--primary2)">₹${r.totalCost.toFixed(2)}</b><br/>
-          ${r.fineAmount > 0 ? `<span style="color:var(--accent)">⚠️ Fine: ₹${r.fineAmount.toFixed(2)}</span><br/>` : ''}
+          💰 Total: <b style="color:var(--primary2)">₹${Number(r.totalCost || 0).toFixed(2)}</b><br/>
+          ${Number(r.fineAmount) > 0 ? `<span style="color:var(--accent);font-weight:700">⚠️ Fine: ₹${Number(r.fineAmount).toFixed(2)}</span><br/>` : ''}
           ${r.actualReturnDate ? `✅ Returned: ${r.actualReturnDate}` : ''}
         </div>
         ${r.status === 'CONFIRMED' ? `<button class="btn btn-danger btn-sm" style="width:100%;justify-content:center;margin-top:12px" onclick="cancelRes(${r.id})">Cancel Reservation</button>` : ''}
@@ -1959,8 +2011,25 @@
       if (!s || !e) { errEl.textContent = 'Select both dates'; errEl.classList.remove('hidden'); return; }
       try {
         const res = await api('/reservations', { action: 'reserve', token: STATE.token, vehicleId: currentVehicleId, startDate: s, endDate: e });
+        const d1 = new Date(s), d2 = new Date(e);
+        const days = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+        const cost = res.totalCost;
+        const newRes = {
+          id: res.reservationId,
+          customerId: STATE.customerId,
+          vehicleId: currentVehicleId,
+          startDate: s,
+          endDate: e,
+          totalCost: cost,
+          status: 'CONFIRMED',
+          actualReturnDate: null,
+          fineAmount: 0,
+          fineRatePerDay: 0,
+          overdueFlagged: false
+        };
+        saveLocalReservation(newRes);
         closeModal('reserveModal');
-        toast(`Reservation confirmed! ID: #${res.reservationId} — Total: ₹${res.totalCost.toFixed(2)}`, 'success');
+        toast(`Reservation confirmed! ID: #${res.reservationId} — Total: ₹${cost.toFixed(2)}`, 'success');
         navigate('myreservations');
       } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
     }
@@ -1995,10 +2064,17 @@
     async function submitFine() {
       const ret = document.getElementById('fineReturnDate').value;
       const rate = document.getElementById('fineRate').value;
+      const rid = currentReservationId;
       try {
         const res = await api('/reservations', {
           action: 'markReturn', token: STATE.token,
-          reservationId: currentReservationId, returnDate: ret, fineRatePerDay: rate
+          reservationId: rid, returnDate: ret, fineRatePerDay: rate
+        });
+        updateLocalReservation(rid, {
+          status: 'COMPLETED',
+          actualReturnDate: ret,
+          fineAmount: res.fine,
+          fineRatePerDay: parseFloat(rate)
         });
         closeModal('fineModal');
         toast(`Vehicle returned. Fine charged: ₹${res.fine.toFixed(2)} (${res.lateDays} days late)`, res.lateDays > 0 ? 'error' : 'success');
@@ -2011,6 +2087,7 @@
       if (!confirm('Cancel reservation #' + rid + '?')) return;
       try {
         await api('/reservations', { action: 'cancel', token: STATE.token, reservationId: rid });
+        updateLocalReservation(rid, { status: 'CANCELLED' });
         toast('Reservation cancelled.', 'success');
         currentPage === 'myreservations' ? loadMyReservations() : loadReservations();
       } catch (e) { toast(e.message, 'error'); }
@@ -2021,8 +2098,10 @@
       if (notes === null) return;
       try {
         await api('/reservations', { action: 'flagOverdue', token: STATE.token, reservationId: rid, notes });
+        updateLocalReservation(rid, { overdueFlagged: true });
         toast('Reservation flagged for legal action!', 'error');
         loadOverdue();
+        loadReservations();
       } catch (e) { toast(e.message, 'error'); }
     }
 

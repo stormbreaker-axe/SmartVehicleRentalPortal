@@ -15,8 +15,7 @@ const INITIAL_VEHICLES = [
   { id: 6, type: "ELECTRIC_SCOOTER", make: "Ola", model: "S1 Pro", plate: "KL03KL4444", rate: 650, available: true, batteryRange: 176, engineCc: null, colour: "Silver", fuelType: "ELECTRIC", numSeats: 2, kmsTravelled: 3000, imageUrl: null }
 ];
 
-function loadStore() {
-  if (globalThis.__SVRP_STORE__) return globalThis.__SVRP_STORE__;
+function getStore() {
   try {
     if (fs.existsSync(TMP_FILE)) {
       const data = JSON.parse(fs.readFileSync(TMP_FILE, 'utf8'));
@@ -27,24 +26,38 @@ function loadStore() {
     }
   } catch (_) {}
 
-  const initial = {
-    vehicles: JSON.parse(JSON.stringify(INITIAL_VEHICLES)),
-    customers: [],
-    reservations: [],
-    payments: [],
-    otps: {}
-  };
-  globalThis.__SVRP_STORE__ = initial;
-  return initial;
+  if (!globalThis.__SVRP_STORE__) {
+    const initial = {
+      vehicles: JSON.parse(JSON.stringify(INITIAL_VEHICLES)),
+      customers: [],
+      reservations: [],
+      payments: [],
+      otps: {}
+    };
+    globalThis.__SVRP_STORE__ = initial;
+    try { fs.writeFileSync(TMP_FILE, JSON.stringify(initial), 'utf8'); } catch (_) {}
+  }
+  return globalThis.__SVRP_STORE__;
 }
-
-const store = loadStore();
 
 function saveStore() {
   try {
-    fs.writeFileSync(TMP_FILE, JSON.stringify(store), 'utf8');
+    const s = getStore();
+    fs.writeFileSync(TMP_FILE, JSON.stringify(s), 'utf8');
   } catch (_) {}
 }
+
+const store = new Proxy({}, {
+  get(target, prop) {
+    return getStore()[prop];
+  },
+  set(target, prop, value) {
+    const s = getStore();
+    s[prop] = value;
+    saveStore();
+    return true;
+  }
+});
 
 function simpleHash(pass) {
   let h = 0x12345678;
@@ -89,4 +102,4 @@ function parseBody(req) {
   return req.body;
 }
 
-module.exports = { store, saveStore, simpleHash, createToken, verifyToken, cors, parseBody };
+module.exports = { store, saveStore, getStore, simpleHash, createToken, verifyToken, cors, parseBody };
