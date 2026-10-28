@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Web Server (ApiServer)",
+            "type": "shell",
+            "command": "java -cp \"bin;lib\\mysql-connector-j.jar;src\\resources\" com.svrp.web.ApiServer",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Main Portal (CLI)",
+            "type": "shell",
+            "command": "java -cp \"bin;lib\\mysql-connector-j.jar;src\\resources\" com.svrp.Main",
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,3 @@
+package com.svrp.dao;
+import com.svrp.model.Payment; import com.svrp.util.DatabaseConnection; import java.sql.*;
+public class PaymentDAO { public int insert(Payment x)throws SQLException{String q="INSERT INTO payments(reservation_id,amount,payment_method,status) VALUES(?,?,?,'PAID')";try(Connection c=DatabaseConnection.getConnection();PreparedStatement p=c.prepareStatement(q,Statement.RETURN_GENERATED_KEYS)){p.setInt(1,x.getReservationId());p.setDouble(2,x.getAmount());p.setString(3,x.getPaymentMethod());p.executeUpdate();try(ResultSet k=p.getGeneratedKeys()){if(k.next())return k.getInt(1);}}throw new SQLException("No generated payment ID");} }

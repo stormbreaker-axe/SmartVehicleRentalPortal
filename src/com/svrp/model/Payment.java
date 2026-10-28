@@ -1,0 +1,2 @@
+package com.svrp.model;
+public class Payment { private int id,reservationId; private double amount; private String method,status; public Payment(int id,int r,double a,String m,String s){this.id=id;reservationId=r;amount=a;method=m;status=s;} public int getId(){return id;} public int getReservationId(){return reservationId;} public double getAmount(){return amount;} public String getPaymentMethod(){return method;} public String getStatus(){return status;} }

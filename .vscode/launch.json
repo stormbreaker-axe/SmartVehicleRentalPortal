@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Web Portal Server (ApiServer)",
+            "request": "launch",
+            "mainClass": "com.svrp.web.ApiServer",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Smart Vehicle Rental Portal (Main)",
+            "request": "launch",
+            "mainClass": "com.svrp.Main",
+            "console": "integratedTerminal"
+        }
+    ]
+}
