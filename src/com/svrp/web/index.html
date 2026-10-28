@@ -1343,6 +1343,7 @@
     );
     let STATE = { role: null, token: null, customerId: null, userName: null };
     let currentVehicleId = null, currentReservationId = null;
+    let _pendingOtpToken = null; // stores the signed OTP token for stateless verification
 
     /* ─── Init ───────────────────────────────────────────────── */
     window.addEventListener('DOMContentLoaded', async () => {
@@ -1420,12 +1421,13 @@
       if (pass.length < 6) { showError('regError', 'Password must be at least 6 characters'); return; }
       try {
         const res = await api('/otp', { action: 'send', phone });
-        toast('OTP sent! Demo code: ' + (res.otp || ''), 'info');
+        // Store the signed OTP token for stateless verification — survives container switches
+        _pendingOtpToken = res.otpToken || null;
+        const code = res.otp || '';
+        toast(`OTP sent! Your code: ${code}`, 'info');
         document.getElementById('otpSection').classList.remove('hidden');
         document.getElementById('regStep1Btn').classList.add('hidden');
-        if (res.otp) {
-          document.getElementById('otpInput').value = res.otp;
-        }
+        if (code) document.getElementById('otpInput').value = code;
       } catch (e) { showError('regError', e.message); }
     }
 
@@ -1433,10 +1435,10 @@
       const phone = document.getElementById('rPhone').value.trim();
       try {
         const res = await api('/otp', { action: 'send', phone });
-        toast('OTP: ' + res.otp, 'info');
-        if (res.otp) {
-          document.getElementById('otpInput').value = res.otp;
-        }
+        _pendingOtpToken = res.otpToken || null;
+        const code = res.otp || '';
+        toast('New OTP: ' + code, 'info');
+        if (code) document.getElementById('otpInput').value = code;
       }
       catch (e) { toast(e.message, 'error'); }
     }
@@ -1447,7 +1449,8 @@
       const otp = document.getElementById('otpInput').value.trim();
       if (!otp) { showError('regError', 'Enter OTP'); return; }
       try {
-        await api('/otp', { action: 'verify', phone, otp });
+        // Send the signed otpToken back so the server can verify without any memory
+        await api('/otp', { action: 'verify', phone, otp, otpToken: _pendingOtpToken });
         // OTP verified — now register
         const res = await api('/customer', {
           action: 'register',
@@ -1459,6 +1462,7 @@
         });
         // Mark OTP verified
         await api('/customer', { action: 'markVerified', customerId: res.customerId });
+        _pendingOtpToken = null;
         toast('Registration successful! Please sign in.', 'success');
         switchTab('login');
         document.getElementById('loginPhone').value = phone;
