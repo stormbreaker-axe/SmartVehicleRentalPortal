@@ -1332,9 +1332,15 @@
 
   <script>
     /* ─── Config ─────────────────────────────────────────────── */
-    const API = (window.location.protocol.startsWith('http') && window.location.port)
-      ? (window.location.origin + '/api')
-      : 'http://localhost:8081/api';
+    const urlParamApi = new URLSearchParams(window.location.search).get('api');
+    if (urlParamApi) localStorage.setItem('svrp_api_url', urlParamApi);
+    const customApi = localStorage.getItem('svrp_api_url');
+
+    const API = customApi || (
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? (window.location.port ? `${window.location.origin}/api` : 'http://localhost:8081/api')
+        : (window.location.protocol.startsWith('http') ? `${window.location.origin}/api` : 'http://localhost:8081/api')
+    );
     let STATE = { role: null, token: null, customerId: null, userName: null };
     let currentVehicleId = null, currentReservationId = null;
 

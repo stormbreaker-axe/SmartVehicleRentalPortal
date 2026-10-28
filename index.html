@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Smart Vehicle Rental Portal</title>
+  <meta name="description"
+    content="Book cars, bikes & electric scooters instantly. Smart Vehicle Rental Portal — your trusted mobility partner." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    /* ─── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg: #0a0a12;
+      --surface: #12121f;
+      --card: #1a1a2e;
+      --card2: #20203a;
+      --primary: #6c63ff;
+      --primary2: #a78bfa;
+      --accent: #f43f5e;
+      --accent2: #fb923c;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --blue: #3b82f6;
+      --text: #f0f0ff;
+      --muted: #9090b8;
+      --border: rgba(108, 99, 255, .18);
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, .5);
+      --glow: 0 0 24px rgba(108, 99, 255, .35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ─── Scrollbar ──────────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 4px;
+    }
+
+    /* ─── Animated background ────────────────────────────────── */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: .18;
+      animation: orbFloat 12s ease-in-out infinite;
+    }
+
+    .orb1 {
+      width: 600px;
+      height: 600px;
+      background: var(--primary);
+      top: -200px;
+      left: -200px;
+      animation-delay: 0s;
+    }
+
+    .orb2 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent);
+      bottom: -100px;
+      right: -100px;
+      animation-delay: -4s;
+    }
+
+    .orb3 {
+      width: 300px;
+      height: 300px;
+      background: #06b6d4;
+      top: 40%;
+      left: 60%;
+      animation-delay: -8s;
+    }
+
+    @keyframes orbFloat {
+
+      0%,
+      100% {
+        transform: translate(0, 0);
+      }
+
+      50% {
+        transform: translate(30px, 20px);
+      }
+    }
+
+    /* ─── Utility ────────────────────────────────────────────── */
+    .z1 {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .gap {
+      gap: 12px;
+    }
+
+    .wrap {
+      flex-wrap: wrap;
+    }
+
+    .center {
+      align-items: center;
+      justify-content: center;
+    }
+
+    .col {
+      flex-direction: column;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .grow {
+      flex: 1;
+    }
+
+    /* ─── Landing ────────────────────────────────────────────── */
+    #landing {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 18, .7);
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-btns {
+      display: flex;
+      gap: 12px;
+    }
+
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 40px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 0%, var(--primary2) 50%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .stats {
+      display: flex;
+      gap: 40px;
+      margin-top: 60px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-top: 4px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 60px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .feat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: .3s;
+    }
+
+    .feat-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--glow);
+      transform: translateY(-4px);
+    }
+
+    .feat-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+    }
+
+    .feat-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feat-card p {
+      color: var(--muted);
+      font-size: .875rem;
+      line-height: 1.6;
+    }
+
+    /* ─── Buttons ────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: .95rem;
+      font-weight: 600;
+      border: none;
+      transition: .25s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(108, 99, 255, .4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(108, 99, 255, .55);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--primary);
+      background: rgba(108, 99, 255, .1);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--accent), #e11d48);
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(244, 63, 94, .5);
+    }
+
+    .btn-green {
+      background: linear-gradient(135deg, var(--green), #059669);
+      color: #fff;
+    }
+
+    .btn-green:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: .83rem;
+      border-radius: 8px;
+    }
+
+    .btn-xs {
+      padding: 5px 12px;
+      font-size: .78rem;
+      border-radius: 6px;
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* ─── Auth modal ─────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(8px);
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow);
+      position: relative;
+      animation: modalIn .3s cubic-bezier(.34, 1.56, .64, 1);
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.3rem;
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
+
+    .modal h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .modal .subtitle {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 28px;
+    }
+
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      border-radius: 7px;
+      font-size: .875rem;
+      font-weight: 600;
+      border: none;
+      background: none;
+      color: var(--muted);
+      transition: .2s;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* ─── Form elements ──────────────────────────────────────── */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: .83rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: .93rem;
+      font-family: inherit;
+      transition: .2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, .15);
+    }
+
+    .form-group input.error {
+      border-color: var(--accent);
+    }
+
+    .input-hint {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .input-hint.err {
+      color: var(--accent);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .otp-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .otp-row input {
+      letter-spacing: 4px;
+      font-size: 1.3rem;
+      text-align: center;
+    }
+
+    /* ─── App shell ──────────────────────────────────────────── */
+    #app {
+      display: none;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+
+    .app-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .app-logo {
+      font-size: 1.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 6px 16px 6px 6px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: .85rem;
+    }
+
+    .user-name {
+      font-size: .9rem;
+      font-weight: 500;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px;
+      position: sticky;
+      top: 57px;
+      height: calc(100vh - 57px);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--muted);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: .2s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover {
+      background: var(--card);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: rgba(108, 99, 255, .15);
+      color: var(--primary);
+    }
+
+    .nav-item i {
+      width: 18px;
+      text-align: center;
+    }
+
+    .badge {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      font-size: .7rem;
+      padding: 2px 7px;
+      margin-left: auto;
+      font-weight: 700;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn .3s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .page-sub {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 24px;
+    }
+
+    /* ─── Cards ──────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .vehicle-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: .3s;
+      position: relative;
+    }
+
+    .vehicle-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--glow);
+      transform: translateY(-3px);
+    }
+
+    .vehicle-img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: linear-gradient(135deg, var(--surface), var(--card2));
+    }
+
+    .vehicle-img-placeholder {
+      width: 100%;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1e1e35, #2a2a48);
+      font-size: 3.5rem;
+    }
+
+    .vehicle-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+
+    .badge-avail {
+      background: rgba(16, 185, 129, .2);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, .3);
+    }
+
+    .badge-unavail {
+      background: rgba(244, 63, 94, .15);
+      color: var(--accent);
+      border: 1px solid rgba(244, 63, 94, .25);
+    }
+
+    .vehicle-body {
+      padding: 16px;
+    }
+
+    .vehicle-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .vehicle-type-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .type-car {
+      background: rgba(59, 130, 246, .15);
+      color: var(--blue);
+    }
+
+    .type-bike {
+      background: rgba(251, 146, 60, .15);
+      color: var(--accent2);
+    }
+
+    .type-scooter {
+      background: rgba(16, 185, 129, .15);
+      color: var(--green);
+    }
+
+    .vehicle-specs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .spec {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .spec i {
+      color: var(--primary2);
+      width: 14px;
+    }
+
+    .vehicle-rate {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary2);
+      margin-bottom: 12px;
+    }
+
+    /* ─── Stats cards ────────────────────────────────────────── */
+    .stat-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-card .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .stat-card .val {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    .stat-card .lbl {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    /* ─── Table ──────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: var(--card2);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: .82rem;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: .87rem;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+
+    .status-confirmed {
+      background: rgba(59, 130, 246, .15);
+      color: var(--blue);
+    }
+
+    .status-cancelled {
+      background: rgba(244, 63, 94, .15);
+      color: var(--accent);
+    }
+
+    .status-completed {
+      background: rgba(16, 185, 129, .15);
+      color: var(--green);
+    }
+
+    .status-overdue {
+      background: rgba(245, 158, 11, .15);
+      color: var(--yellow);
+    }
+
+    /* ─── Alerts ─────────────────────────────────────────────── */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: .9rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-error {
+      background: rgba(244, 63, 94, .1);
+      border: 1px solid rgba(244, 63, 94, .25);
+      color: #fda4af;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, .1);
+      border: 1px solid rgba(16, 185, 129, .25);
+      color: #6ee7b7;
+    }
+
+    .alert-warn {
+      background: rgba(245, 158, 11, .1);
+      border: 1px solid rgba(245, 158, 11, .25);
+      color: #fcd34d;
+    }
+
+    .alert-info {
+      background: rgba(108, 99, 255, .1);
+      border: 1px solid rgba(108, 99, 255, .25);
+      color: var(--primary2);
+    }
+
+    /* ─── Filter bar ─────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 14px;
+      color: var(--text);
+      font-size: .875rem;
+      font-family: inherit;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    /* ─── Legal report modal ─────────────────────────────────── */
+    .report-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-family: 'Courier New', monospace;
+      font-size: .82rem;
+      line-height: 1.9;
+      white-space: pre-wrap;
+      color: var(--text);
+      margin-top: 16px;
+    }
+
+    /* ─── Toast ──────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast-msg {
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: .9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .5);
+      animation: toastIn .3s ease;
+      pointer-events: auto;
+    }
+
+    .toast-success {
+      background: #064e3b;
+      border: 1px solid var(--green);
+      color: #6ee7b7;
+    }
+
+    .toast-error {
+      background: #4c0519;
+      border: 1px solid var(--accent);
+      color: #fda4af;
+    }
+
+    .toast-info {
+      background: #1e1b4b;
+      border: 1px solid var(--primary);
+      color: var(--primary2);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* ─── Overdue alert banner ───────────────────────────────── */
+    .overdue-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, .15), rgba(244, 63, 94, .1));
+      border: 1px solid rgba(245, 158, 11, .3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, .3);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+      }
+    }
+
+    /* ─── Reservation form ───────────────────────────────────── */
+    .date-cost-preview {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 8px;
+      font-size: .9rem;
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────── */
+    @media(max-width:768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main-content {
+        padding: 16px;
+      }
+
+      .nav,
+      .app-nav {
+        padding: 14px 20px;
+      }
+
+      .hero {
+        padding: 40px 20px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .features {
+        padding: 30px 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ─── Animated background ──────────────────────────────── -->
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+
+  <!-- ═══════════════ LANDING PAGE ════════════════════════════ -->
+  <div id="landing" class="z1">
+    <nav class="nav">
+      <div class="logo"><i class="fa-solid fa-car"></i> SVRP</div>
+      <div class="nav-btns">
+        <button class="btn btn-outline" onclick="openAuth('customer')"><i class="fa-regular fa-user"></i> Customer
+          Login</button>
+        <button class="btn btn-primary" onclick="openAuth('admin')"><i class="fa-solid fa-shield-halved"></i> Admin
+          Login</button>
+      </div>
+    </nav>
+    <div class="hero">
+      <h1>Rent Any Vehicle<br />In Seconds</h1>
+      <p>Premium cars, bikes &amp; electric scooters available 24/7. Smart booking, instant confirmation, zero hassle.
+      </p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="openAuth('customer')"><i class="fa-solid fa-rocket"></i> Get
+          Started</button>
+        <button class="btn btn-outline" onclick="viewVehiclesPublic()"><i class="fa-solid fa-eye"></i> Browse
+          Fleet</button>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-num" id="s-vehicles">—</div>
+          <div class="stat-label">Vehicles</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">24/7</div>
+          <div class="stat-label">Support</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">₹0</div>
+          <div class="stat-label">Hidden Fees</div>
+        </div>
+      </div>
+    </div>
+    <div class="features">
+      <div class="feat-card">
+        <div class="feat-icon">🔐</div>
+        <h3>Secure OTP Login</h3>
+        <p>Phone-verified accounts keep your rentals safe and traceable.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⚡</div>
+        <h3>Electric Fleet</h3>
+        <p>Eco-friendly scooters with battery range info for guilt-free travel.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">💳</div>
+        <h3>Multiple Payments</h3>
+        <p>Pay via Cash, Card, UPI or Net Banking — your choice.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <h3>Admin Dashboard</h3>
+        <p>Complete control — track fines, flag overdues, generate legal reports.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ AUTH MODALS ══════════════════════════════ -->
+  <div class="modal-overlay hidden" id="authModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('authModal')"><i class="fa-solid fa-xmark"></i></button>
+      <!-- Customer Auth -->
+      <div id="customerAuth">
+        <h2>Welcome Back 👋</h2>
+        <p class="subtitle">Sign in to manage your rentals</p>
+        <div class="tabs">
+          <button class="tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+          <button class="tab" id="tabReg" onclick="switchTab('register')">Register</button>
+        </div>
+        <!-- LOGIN -->
+        <div id="loginForm">
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="loginPhone" placeholder="9876543210" maxlength="10" />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="loginPass" placeholder="Your password" />
+          </div>
+          <div id="loginError" class="hidden alert alert-error"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;" onclick="doLogin()">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+          </button>
+        </div>
+        <!-- REGISTER -->
+        <div id="registerForm" class="hidden">
+          <div class="form-row">
+            <div class="form-group"><label>Full Name</label><input type="text" id="rName" placeholder="John Doe" />
+            </div>
+            <div class="form-group"><label>Email</label><input type="email" id="rEmail"
+                placeholder="john@example.com" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Phone <span style="color:var(--muted);font-size:.75rem">(10 digits, starts 6-9)</span></label>
+              <input type="tel" id="rPhone" placeholder="9876543210" maxlength="10" oninput="validatePhone(this)" />
+              <div class="input-hint" id="phoneHint"></div>
+            </div>
+            <div class="form-group">
+              <label>Driving License <span style="color:var(--muted);font-size:.75rem">(e.g. KL01AB1234)</span></label>
+              <input type="text" id="rLicense" placeholder="KL01AB1234" oninput="validateLicense(this)" />
+              <div class="input-hint" id="licenseHint"></div>
+            </div>
+          </div>
+          <div class="form-group"><label>Password</label><input type="password" id="rPass"
+              placeholder="Min 6 characters" /></div>
+
+          <!-- OTP Step -->
+          <div id="otpSection" class="hidden">
+            <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i> OTP sent! Check console/log for demo
+              OTP.</div>
+            <div class="form-group">
+              <label>Enter OTP</label>
+              <div class="otp-row">
+                <input type="text" id="otpInput" placeholder="— — — — — —" maxlength="6" />
+                <button class="btn btn-outline btn-sm" onclick="resendOtp()">Resend</button>
+              </div>
+            </div>
+            <button class="btn btn-green" style="width:100%;justify-content:center;" onclick="verifyAndRegister()">
+              <i class="fa-solid fa-check"></i> Verify & Register
+            </button>
+          </div>
+          <div id="regError" class="hidden alert alert-error"></div>
+          <div id="regStep1Btn">
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;"
+              onclick="sendOtpAndProceed()">
+              <i class="fa-solid fa-mobile-screen"></i> Send OTP
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Admin Auth -->
+      <div id="adminAuth" class="hidden">
+        <h2>Admin Portal 🛡️</h2>
+        <p class="subtitle">Restricted access — authorized personnel only</p>
+        <div class="form-group"><label>Username</label><input type="text" id="adminUser" placeholder="admin" /></div>
+        <div class="form-group"><label>Password</label><input type="password" id="adminPass" placeholder="Password" />
+        </div>
+        <div id="adminError" class="hidden alert alert-error"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;"
+          onclick="doAdminLogin()">
+          <i class="fa-solid fa-shield-halved"></i> Enter Admin Portal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal Report Modal -->
+  <div class="modal-overlay hidden" id="reportModal">
+    <div class="modal" style="max-width:580px;">
+      <button class="modal-close" onclick="closeModal('reportModal')"><i class="fa-solid fa-xmark"></i></button>
+      <h2>📄 Legal Report</h2>
+      <p class="subtitle">For police/legal proceedings — handle with care</p>
+      <div class="report-box" id="reportContent"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button class="btn btn-primary" onclick="printReport()"><i class="fa-solid fa-print"></i> Print / Save
+          PDF</button>
+        <button class="btn btn-outline" onclick="closeModal('reportModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fine Modal -->
+  <div class="modal-overlay hidden" id="fineModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('fineModal')"><i class="fa-solid fa-xmark"></i></button>
+      <h2>💰 Charge Late Return Fine</h2>
+      <p class="subtitle" id="fineModalSub"></p>
+      <div class="form-group"><label>Actual Return Date</label><input type="date" id="fineReturnDate" /></div>
+      <div class="form-group"><label>Fine Rate per Day (₹)</label><input type="number" id="fineRate" placeholder="500"
+          min="0" /></div>
+      <div id="finePreview" class="hidden date-cost-preview"></div>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button class="btn btn-danger" onclick="submitFine()"><i class="fa-solid fa-gavel"></i> Charge Fine &
+          Return</button>
+        <button class="btn btn-outline" onclick="closeModal('fineModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reserve Modal -->
+  <div class="modal-overlay hidden" id="reserveModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('reserveModal')"><i class="fa-solid fa-xmark"></i></button>
+      <h2>📅 Reserve Vehicle</h2>
+      <p class="subtitle" id="reserveModalSub"></p>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date</label><input type="date" id="resStart"
+            onchange="updateCostPreview()" /></div>
+        <div class="form-group"><label>End Date</label><input type="date" id="resEnd" onchange="updateCostPreview()" />
+        </div>
+      </div>
+      <div id="costPreview" class="hidden date-cost-preview"></div>
+      <div id="reserveError" class="hidden alert alert-error" style="margin-top:12px;"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:16px;"
+        onclick="confirmReservation()">
+        <i class="fa-solid fa-check"></i> Confirm Reservation
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ APP SHELL ═════════════════════════════════ -->
+  <div id="app" class="z1">
+    <nav class="app-nav">
+      <div class="app-logo"><i class="fa-solid fa-car"></i> SVRP</div>
+      <div class="flex gap center">
+        <div class="user-pill">
+          <div class="avatar" id="userAvatar">?</div>
+          <span class="user-name" id="userNameDisp">User</span>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i>
+          Logout</button>
+      </div>
+    </nav>
+    <div class="flex grow">
+      <aside class="sidebar" id="sidebar"></aside>
+      <main class="main-content" id="mainContent"></main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast"></div>
+
+  <script>
+    /* ─── Config ─────────────────────────────────────────────── */
+    const urlParamApi = new URLSearchParams(window.location.search).get('api');
+    if (urlParamApi) localStorage.setItem('svrp_api_url', urlParamApi);
+    const customApi = localStorage.getItem('svrp_api_url');
+
+    const API = customApi || (
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? (window.location.port ? `${window.location.origin}/api` : 'http://localhost:8081/api')
+        : (window.location.protocol.startsWith('http') ? `${window.location.origin}/api` : 'http://localhost:8081/api')
+    );
+    let STATE = { role: null, token: null, customerId: null, userName: null };
+    let currentVehicleId = null, currentReservationId = null;
+
+    /* ─── Init ───────────────────────────────────────────────── */
+    window.addEventListener('DOMContentLoaded', async () => {
+      const saved = JSON.parse(sessionStorage.getItem('svrp_session') || 'null');
+      if (saved) { STATE = saved; startApp(); }
+      loadPublicStats();
+    });
+
+    async function loadPublicStats() {
+      try {
+        const res = await fetch(`${API}/vehicles`);
+        const vehicles = await res.json();
+        document.getElementById('s-vehicles').textContent = vehicles.length;
+      } catch (e) { }
+    }
+
+    async function viewVehiclesPublic() {
+      // Show vehicles in a simplified listing for unauthenticated users
+      openAuth('customer');
+    }
+
+    /* ─── Auth ───────────────────────────────────────────────── */
+    function openAuth(role) {
+      document.getElementById('authModal').classList.remove('hidden');
+      document.getElementById('customerAuth').classList.toggle('hidden', role === 'admin');
+      document.getElementById('adminAuth').classList.toggle('hidden', role !== 'admin');
+    }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function switchTab(tab) {
+      document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+      document.getElementById('tabReg').classList.toggle('active', tab !== 'login');
+      document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('registerForm').classList.toggle('hidden', tab === 'login');
+      clearErrors();
+    }
+
+    function clearErrors() {
+      ['loginError', 'regError', 'adminError'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.textContent = ''; }
+      });
+    }
+
+    // Validation
+    function validatePhone(input) {
+      const hint = document.getElementById('phoneHint');
+      const ok = /^[6-9]\d{9}$/.test(input.value);
+      hint.textContent = ok ? '✓ Valid phone number' : input.value.length > 0 ? '✗ Must be 10 digits starting with 6-9' : '';
+      hint.className = 'input-hint ' + (ok ? '' : 'err');
+      input.classList.toggle('error', !ok && input.value.length > 0);
+    }
+
+    function validateLicense(input) {
+      const hint = document.getElementById('licenseHint');
+      const ok = /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4,7}$/.test(input.value.toUpperCase());
+      input.value = input.value.toUpperCase();
+      hint.textContent = ok ? '✓ Valid license format' : input.value.length > 0 ? '✗ Format: KL01AB1234' : '';
+      hint.className = 'input-hint ' + (ok ? '' : 'err');
+      input.classList.toggle('error', !ok && input.value.length > 0);
+    }
+
+    // OTP flow
+    async function sendOtpAndProceed() {
+      clearErrors();
+      const phone = document.getElementById('rPhone').value.trim();
+      const email = document.getElementById('rEmail').value.trim();
+      const name = document.getElementById('rName').value.trim();
+      const lic = document.getElementById('rLicense').value.trim().toUpperCase();
+      const pass = document.getElementById('rPass').value;
+      if (!name) { showError('regError', 'Name is required'); return; }
+      if (!email || !/^[\w._%+\-]+@[\w.\-]+\.[a-zA-Z]{2,}$/.test(email)) { showError('regError', 'Invalid email'); return; }
+      if (!/^[6-9]\d{9}$/.test(phone)) { showError('regError', 'Invalid phone number (10 digits, starts 6-9)'); return; }
+      if (!/^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4,7}$/.test(lic)) { showError('regError', 'Invalid license format (e.g. KL01AB1234)'); return; }
+      if (pass.length < 6) { showError('regError', 'Password must be at least 6 characters'); return; }
+      try {
+        const res = await api('/otp', { action: 'send', phone });
+        toast('OTP sent! Demo code: ' + (res.otp || ''), 'info');
+        document.getElementById('otpSection').classList.remove('hidden');
+        document.getElementById('regStep1Btn').classList.add('hidden');
+        if (res.otp) {
+          document.getElementById('otpInput').value = res.otp;
+        }
+      } catch (e) { showError('regError', e.message); }
+    }
+
+    async function resendOtp() {
+      const phone = document.getElementById('rPhone').value.trim();
+      try {
+        const res = await api('/otp', { action: 'send', phone });
+        toast('OTP: ' + res.otp, 'info');
+        if (res.otp) {
+          document.getElementById('otpInput').value = res.otp;
+        }
+      }
+      catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function verifyAndRegister() {
+      clearErrors();
+      const phone = document.getElementById('rPhone').value.trim();
+      const otp = document.getElementById('otpInput').value.trim();
+      if (!otp) { showError('regError', 'Enter OTP'); return; }
+      try {
+        await api('/otp', { action: 'verify', phone, otp });
+        // OTP verified — now register
+        const res = await api('/customer', {
+          action: 'register',
+          name: document.getElementById('rName').value.trim(),
+          email: document.getElementById('rEmail').value.trim(),
+          phone,
+          license: document.getElementById('rLicense').value.trim().toUpperCase(),
+          password: document.getElementById('rPass').value
+        });
+        // Mark OTP verified
+        await api('/customer', { action: 'markVerified', customerId: res.customerId });
+        toast('Registration successful! Please sign in.', 'success');
+        switchTab('login');
+        document.getElementById('loginPhone').value = phone;
+      } catch (e) { showError('regError', e.message); }
+    }
+
+    async function doLogin() {
+      clearErrors();
+      const phone = document.getElementById('loginPhone').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      try {
+        const res = await api('/customer', { action: 'login', phone, password: pass });
+        STATE = { role: 'customer', token: res.token, customerId: res.customerId, userName: res.name };
+        sessionStorage.setItem('svrp_session', JSON.stringify(STATE));
+        closeModal('authModal');
+        startApp();
+      } catch (e) { showError('loginError', e.message); }
+    }
+
+    async function doAdminLogin() {
+      clearErrors();
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value;
+      try {
+        const res = await api('/admin', { action: 'login', username: user, password: pass });
+        STATE = { role: 'admin', token: res.token, userName: 'Admin', customerId: null };
+        sessionStorage.setItem('svrp_session', JSON.stringify(STATE));
+        closeModal('authModal');
+        startApp();
+      } catch (e) { showError('adminError', e.message); }
+    }
+
+    function doLogout() {
+      STATE = { role: null, token: null, customerId: null, userName: null };
+      sessionStorage.removeItem('svrp_session');
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('landing').style.display = 'flex';
+    }
+
+    /* ─── App Shell ──────────────────────────────────────────── */
+    function startApp() {
+      document.getElementById('landing').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      // Avatar
+      const name = STATE.userName || '?';
+      document.getElementById('userAvatar').textContent = name[0].toUpperCase();
+      document.getElementById('userNameDisp').textContent = name;
+      buildSidebar();
+      buildPages();
+      navigate(STATE.role === 'admin' ? 'dashboard' : 'vehicles');
+      if (STATE.role === 'admin') checkOverdueAlert();
+    }
+
+    function buildSidebar() {
+      const items = STATE.role === 'admin' ? [
+        { id: 'dashboard', icon: 'fa-chart-pie', label: 'Dashboard' },
+        { id: 'vehicles', icon: 'fa-car', label: 'Fleet' },
+        { id: 'customers', icon: 'fa-users', label: 'Customers' },
+        { id: 'reservations', icon: 'fa-calendar-check', label: 'Reservations' },
+        { id: 'overdue', icon: 'fa-triangle-exclamation', label: 'Overdue', badge: true },
+        { id: 'addvehicle', icon: 'fa-plus', label: 'Add Vehicle' },
+      ] : [
+        { id: 'vehicles', icon: 'fa-car', label: 'Browse Fleet' },
+        { id: 'myreservations', icon: 'fa-calendar-check', label: 'My Bookings' },
+        { id: 'profile', icon: 'fa-user', label: 'My Profile' },
+      ];
+      document.getElementById('sidebar').innerHTML = items.map(it =>
+        `<button class="nav-item" id="nav-${it.id}" onclick="navigate('${it.id}')">
+       <i class="fa-solid ${it.icon}"></i>${it.label}
+       ${it.badge ? `<span class="badge hidden" id="overdueCount">0</span>` : ''}
+     </button>`
+      ).join('');
+    }
+
+    function buildPages() {
+      const mc = document.getElementById('mainContent');
+      mc.innerHTML = STATE.role === 'admin' ? `
+    <div id="page-dashboard" class="page"></div>
+    <div id="page-vehicles"  class="page"></div>
+    <div id="page-customers" class="page"></div>
+    <div id="page-reservations" class="page"></div>
+    <div id="page-overdue"   class="page"></div>
+    <div id="page-addvehicle" class="page"></div>
+  ` : `
+    <div id="page-vehicles"       class="page"></div>
+    <div id="page-myreservations" class="page"></div>
+    <div id="page-profile"        class="page"></div>
+  `;
+    }
+
+    let currentPage = null;
+    function navigate(page) {
+      if (currentPage) {
+        document.getElementById(`page-${currentPage}`)?.classList.remove('active');
+        document.getElementById(`nav-${currentPage}`)?.classList.remove('active');
+      }
+      currentPage = page;
+      document.getElementById(`page-${page}`)?.classList.add('active');
+      document.getElementById(`nav-${page}`)?.classList.add('active');
+      loadPage(page);
+    }
+
+    async function loadPage(page) {
+      if (page === 'dashboard') await loadDashboard();
+      else if (page === 'vehicles') await loadVehicles();
+      else if (page === 'customers') await loadCustomers();
+      else if (page === 'reservations') await loadReservations();
+      else if (page === 'overdue') await loadOverdue();
+      else if (page === 'addvehicle') renderAddVehicle();
+      else if (page === 'myreservations') await loadMyReservations();
+      else if (page === 'profile') await loadProfile();
+    }
+
+    /* ─── Dashboard (Admin) ──────────────────────────────────── */
+    async function loadDashboard() {
+      const el = document.getElementById('page-dashboard');
+      el.innerHTML = `<div class="page-title">Dashboard</div><div class="page-sub">Overview of your fleet</div>
+  <div class="stat-cards" id="dashStats"><div style="color:var(--muted)">Loading...</div></div>
+  <div id="dashOverdue"></div>`;
+      try {
+        const [vehicles, reservations, customers] = await Promise.all([
+          api('/vehicles', null, 'GET'),
+          api('/reservations', { action: 'all', token: STATE.token }),
+          api('/customer', { action: 'all', token: STATE.token })
+        ]);
+        const avail = vehicles.filter(v => v.available).length;
+        const confirmed = reservations.filter(r => r.status === 'CONFIRMED').length;
+        const revenue = reservations.filter(r => r.status === 'COMPLETED').reduce((s, r) => s + r.totalCost, 0);
+        const overdue = reservations.filter(r => r.status === 'CONFIRMED' && new Date(r.endDate) < new Date() && !r.actualReturnDate);
+        document.getElementById('dashStats').innerHTML = `
+      <div class="stat-card"><div class="icon" style="background:rgba(108,99,255,.15);color:var(--primary)"><i class="fa-solid fa-car"></i></div>
+        <div class="val">${vehicles.length}</div><div class="lbl">Total Vehicles</div></div>
+      <div class="stat-card"><div class="icon" style="background:rgba(16,185,129,.15);color:var(--green)"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="val">${avail}</div><div class="lbl">Available</div></div>
+      <div class="stat-card"><div class="icon" style="background:rgba(59,130,246,.15);color:var(--blue)"><i class="fa-solid fa-calendar"></i></div>
+        <div class="val">${confirmed}</div><div class="lbl">Active Bookings</div></div>
+      <div class="stat-card"><div class="icon" style="background:rgba(245,158,11,.15);color:var(--yellow)"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="val">${overdue.length}</div><div class="lbl">Overdue</div></div>
+      <div class="stat-card"><div class="icon" style="background:rgba(244,63,94,.15);color:var(--accent)"><i class="fa-solid fa-users"></i></div>
+        <div class="val">${customers.length}</div><div class="lbl">Customers</div></div>
+      <div class="stat-card"><div class="icon" style="background:rgba(251,146,60,.15);color:var(--accent2)"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+        <div class="val">₹${revenue.toLocaleString()}</div><div class="lbl">Revenue</div></div>
+    `;
+        if (overdue.length > 0) {
+          document.getElementById('dashOverdue').innerHTML = `
+        <div class="overdue-banner">
+          <i class="fa-solid fa-triangle-exclamation" style="color:var(--yellow);font-size:1.4rem"></i>
+          <div><b>${overdue.length} overdue reservation(s)</b> — vehicles not returned past due date.
+          <button class="btn btn-xs btn-outline" style="margin-left:12px" onclick="navigate('overdue')">View →</button></div>
+        </div>`;
+        }
+      } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    /* ─── Vehicles Page ──────────────────────────────────────── */
+    async function loadVehicles() {
+      const el = document.getElementById('page-vehicles');
+      el.innerHTML = `<div class="page-title">${STATE.role === 'admin' ? 'Fleet Management' : 'Browse Fleet'}</div>
+  <div class="page-sub">All available vehicles</div>
+  <div class="filter-bar">
+    <input class="search-input" id="vSearch" placeholder="🔍 Search by make, model..." oninput="filterVehicles()"/>
+    <select id="vType" onchange="filterVehicles()"><option value="">All Types</option>
+      <option value="CAR">Cars</option><option value="BIKE">Bikes</option><option value="ELECTRIC_SCOOTER">Electric Scooters</option>
+    </select>
+    <select id="vAvail" onchange="filterVehicles()"><option value="">All</option>
+      <option value="true">Available</option><option value="false">Unavailable</option>
+    </select>
+  </div>
+  <div class="grid3" id="vehicleGrid"><div style="color:var(--muted)">Loading...</div></div>`;
+      try {
+        window._allVehicles = await api('/vehicles', null, 'GET');
+        filterVehicles();
+      } catch (e) { document.getElementById('vehicleGrid').innerHTML = `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    function filterVehicles() {
+      const q = (document.getElementById('vSearch')?.value || '').toLowerCase();
+      const type = document.getElementById('vType')?.value || '';
+      const avail = document.getElementById('vAvail')?.value || '';
+      const list = (window._allVehicles || []).filter(v => {
+        const match = !q || (v.make + ' ' + v.model + ' ' + v.plate).toLowerCase().includes(q);
+        const tMatch = !type || v.type === type;
+        const aMatch = !avail || String(v.available) === avail;
+        return match && tMatch && aMatch;
+      });
+      document.getElementById('vehicleGrid').innerHTML = list.length
+        ? list.map(vehicleCard).join('')
+        : '<div style="color:var(--muted);padding:20px">No vehicles found.</div>';
+    }
+
+    function vehicleCard(v) {
+      const typeClass = { CAR: 'type-car', BIKE: 'type-bike', ELECTRIC_SCOOTER: 'type-scooter' }[v.type] || 'type-car';
+      const typeLabel = { CAR: '🚗 Car', BIKE: '🏍️ Bike', ELECTRIC_SCOOTER: '⚡ Electric' }[v.type] || v.type;
+      const fuelIcon = v.fuelType === 'ELECTRIC' ? '⚡' : v.fuelType === 'DIESEL' ? '🛢️' : '⛽';
+      const spec = v.type === 'ELECTRIC_SCOOTER'
+        ? `<div class="spec"><i class="fa-solid fa-battery-three-quarters"></i>${v.batteryRange || '—'} km range</div>`
+        : `<div class="spec"><i class="fa-solid fa-gauge-high"></i>${v.engineCc || '—'} cc</div>`;
+      const adminBtns = STATE.role === 'admin' ? `
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <button class="btn btn-xs btn-outline" onclick="toggleAvailability(${v.id},${!v.available})">
+        ${v.available ? 'Mark Unavailable' : 'Mark Available'}</button>
+    </div>` : '';
+      const bookBtn = STATE.role === 'customer' ? `
+    <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;"
+      onclick="openReserve(${v.id},'${esc(v.make)} ${esc(v.model)}')" ${!v.available ? 'disabled' : ''}>
+      <i class="fa-solid fa-calendar-plus"></i> ${v.available ? 'Reserve' : 'Unavailable'}
+    </button>` : '';
+      return `<div class="vehicle-card">
+    <div class="vehicle-badge ${v.available ? 'badge-avail' : 'badge-unavail'}">${v.available ? '✓ Available' : '✗ Unavailable'}</div>
+    <div class="vehicle-img-placeholder">${v.type === 'ELECTRIC_SCOOTER' ? '🛴' : v.type === 'BIKE' ? '🏍️' : '🚗'}</div>
+    <div class="vehicle-body">
+      <div class="vehicle-type-badge ${typeClass}">${typeLabel}</div>
+      <div class="vehicle-name">${esc(v.make)} ${esc(v.model)}</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px;">${esc(v.plate)}</div>
+      <div class="vehicle-specs">
+        <div class="spec"><i class="fa-solid fa-palette"></i>${esc(v.colour)}</div>
+        <div class="spec"><i class="fa-solid fa-gas-pump"></i>${fuelIcon} ${esc(v.fuelType)}</div>
+        <div class="spec"><i class="fa-solid fa-user-group"></i>${v.numSeats} seats</div>
+        ${spec}
+        <div class="spec"><i class="fa-solid fa-road"></i>${(v.kmsTravelled || 0).toLocaleString()} km</div>
+      </div>
+      <div class="vehicle-rate">₹${v.rate}/day</div>
+      ${bookBtn}${adminBtns}
+    </div>
+  </div>`;
+    }
+
+    async function toggleAvailability(id, avail) {
+      try {
+        await api('/admin', { action: 'setAvailability', token: STATE.token, vehicleId: id, available: String(avail) });
+        toast('Availability updated', 'success');
+        loadVehicles();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    /* ─── Customers (Admin) ──────────────────────────────────── */
+    async function loadCustomers() {
+      const el = document.getElementById('page-customers');
+      el.innerHTML = `<div class="page-title">Customers</div><div class="page-sub">All registered users</div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>License</th><th>Verified</th>
+  </tr></thead><tbody id="custBody"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>`;
+      try {
+        const list = await api('/customer', { action: 'all', token: STATE.token });
+        document.getElementById('custBody').innerHTML = list.map(c => `<tr>
+      <td>#${c.id}</td><td>${esc(c.name)}</td><td>${esc(c.email)}</td>
+      <td>${esc(c.phone)}</td><td>${esc(c.license)}</td>
+      <td>${c.otpVerified ? '<span class="status-badge status-completed">✓ Verified</span>' : '<span class="status-badge status-cancelled">✗ Pending</span>'}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No customers</td></tr>';
+      } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    /* ─── All Reservations (Admin) ───────────────────────────── */
+    async function loadReservations() {
+      const el = document.getElementById('page-reservations');
+      el.innerHTML = `<div class="page-title">All Reservations</div><div class="page-sub">Manage every booking</div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>ID</th><th>Customer</th><th>Vehicle</th><th>Dates</th><th>Cost</th><th>Fine</th><th>Status</th><th>Actions</th>
+  </tr></thead><tbody id="resBody"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>`;
+      try {
+        const list = await api('/reservations', { action: 'all', token: STATE.token });
+        document.getElementById('resBody').innerHTML = list.map(r => {
+          const isOverdue = r.status === 'CONFIRMED' && new Date(r.endDate) < new Date() && !r.actualReturnDate;
+          const statusClass = { CONFIRMED: 'status-confirmed', CANCELLED: 'status-cancelled', COMPLETED: 'status-completed' }[r.status] || '';
+          return `<tr>
+        <td>#${r.id}</td><td>#${r.customerId}</td><td>#${r.vehicleId}</td>
+        <td>${r.startDate} → ${r.endDate}</td>
+        <td>₹${r.totalCost.toFixed(2)}</td>
+        <td>${r.fineAmount > 0 ? `<span style="color:var(--accent)">₹${r.fineAmount.toFixed(2)}</span>` : '—'}</td>
+        <td>
+          <span class="status-badge ${isOverdue ? 'status-overdue' : statusClass}">${isOverdue ? '⚠️ Overdue' : r.status}</span>
+          ${r.overdueFlagged ? '<span class="status-badge" style="background:rgba(244,63,94,.2);color:var(--accent);margin-left:4px">🚨 Flagged</span>' : ''}
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${r.status === 'CONFIRMED' ? `<button class="btn btn-xs btn-danger" onclick="openFineModal(${r.id},'${r.startDate}','${r.endDate}')">💰 Fine/Return</button>` : ''}
+            ${r.status === 'CONFIRMED' ? `<button class="btn btn-xs btn-outline" onclick="cancelRes(${r.id})">Cancel</button>` : ''}
+            ${r.status === 'CONFIRMED' && isOverdue ? `<button class="btn btn-xs" style="background:rgba(244,63,94,.2);color:var(--accent)" onclick="flagOverdue(${r.id})">🚨 Flag</button>` : ''}
+            <button class="btn btn-xs btn-outline" onclick="viewLegalReport(${r.id})"><i class="fa-solid fa-file"></i></button>
+          </div>
+        </td>
+      </tr>`;
+        }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted)">No reservations</td></tr>';
+      } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    /* ─── Overdue Page ───────────────────────────────────────── */
+    async function loadOverdue() {
+      const el = document.getElementById('page-overdue');
+      el.innerHTML = `<div class="page-title">⚠️ Overdue Reservations</div>
+  <div class="page-sub">Vehicles not returned past their due date</div>
+  <div id="overdueContent"><div style="color:var(--muted)">Loading...</div></div>`;
+      try {
+        const [overdue, severe] = await Promise.all([
+          api('/reservations', { action: 'overdue', token: STATE.token }),
+          api('/reservations', { action: 'severelyOverdue', token: STATE.token })
+        ]);
+        // Update badge
+        const badge = document.getElementById('overdueCount');
+        if (badge) { badge.textContent = overdue.length; badge.classList.toggle('hidden', overdue.length === 0); }
+        let html = '';
+        if (severe.length > 0) {
+          html += `<div class="overdue-banner" style="margin-bottom:20px">
+        <i class="fa-solid fa-skull-crossbones" style="color:var(--accent);font-size:1.4rem"></i>
+        <div><b>${severe.length} vehicle(s) overdue by 7+ days!</b> These require immediate legal action.
+        <br/><span style="font-size:.85rem;color:var(--muted)">Flag them below to prepare police/legal reports.</span></div>
+      </div>`;
+        }
+        if (overdue.length === 0) {
+          html += '<div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> No overdue reservations. All vehicles returned on time! 🎉</div>';
+        } else {
+          html += `<div class="table-wrap"><table><thead><tr>
+        <th>Res. ID</th><th>Customer</th><th>Vehicle</th><th>Due Date</th><th>Days Late</th><th>Flagged</th><th>Actions</th>
+      </tr></thead><tbody>` + overdue.map(r => {
+            const daysLate = Math.floor((new Date() - new Date(r.endDate)) / (86400000));
+            const isSevere = daysLate >= 7;
+            return `<tr>
+          <td>#${r.id}</td><td>#${r.customerId}</td><td>#${r.vehicleId}</td>
+          <td>${r.endDate}</td>
+          <td><span style="color:${isSevere ? 'var(--accent)' : 'var(--yellow)'};font-weight:700">${daysLate} day(s)</span></td>
+          <td>${r.overdueFlagged ? '<span style="color:var(--accent)">🚨 Flagged</span>' : '—'}</td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-xs btn-danger" onclick="openFineModal(${r.id},'${r.startDate}','${r.endDate}')">💰 Fine/Return</button>
+              ${!r.overdueFlagged ? `<button class="btn btn-xs" style="background:rgba(244,63,94,.2);color:var(--accent)" onclick="flagOverdue(${r.id})">🚨 Flag Legal</button>` : ''}
+              <button class="btn btn-xs btn-outline" onclick="viewLegalReport(${r.id})">📄 Report</button>
+            </div>
+          </td>
+        </tr>`;
+          }).join('') + '</tbody></table></div>';
+        }
+        document.getElementById('overdueContent').innerHTML = html;
+      } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    /* ─── Add Vehicle (Admin) ────────────────────────────────── */
+    function renderAddVehicle() {
+      document.getElementById('page-addvehicle').innerHTML = `
+  <div class="page-title">Add New Vehicle</div><div class="page-sub">Expand your fleet</div>
+  <div class="card" style="max-width:600px">
+    <div class="form-row">
+      <div class="form-group"><label>Vehicle Type</label>
+        <select id="avType" onchange="toggleVehicleFields()">
+          <option value="CAR">Car</option><option value="BIKE">Bike</option><option value="ELECTRIC_SCOOTER">Electric Scooter</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Make</label><input type="text" id="avMake" placeholder="Toyota"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Model</label><input type="text" id="avModel" placeholder="Etios"/></div>
+      <div class="form-group"><label>License Plate</label><input type="text" id="avPlate" placeholder="KL01AB1234"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Daily Rate (₹)</label><input type="number" id="avRate" placeholder="1800" min="0"/></div>
+      <div class="form-group"><label>Colour</label><input type="text" id="avColour" placeholder="White"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fuel Type</label>
+        <select id="avFuel"><option>PETROL</option><option>DIESEL</option><option>ELECTRIC</option><option>HYBRID</option></select>
+      </div>
+      <div class="form-group"><label>No. of Seats</label><input type="number" id="avSeats" placeholder="5" value="2" min="1"/></div>
+    </div>
+    <div class="form-group"><label>KMs Travelled</label><input type="number" id="avKms" placeholder="0" min="0"/></div>
+    <div id="engineField" class="form-group"><label>Engine CC</label><input type="number" id="avCc" placeholder="1496"/></div>
+    <div id="batteryField" class="form-group hidden"><label>Battery Range (km)</label><input type="number" id="avBattery" placeholder="150"/></div>
+    <div id="addVehicleMsg"></div>
+    <button class="btn btn-primary" style="margin-top:8px" onclick="submitAddVehicle()"><i class="fa-solid fa-plus"></i> Add Vehicle</button>
+  </div>`;
+    }
+
+    function toggleVehicleFields() {
+      const t = document.getElementById('avType').value;
+      document.getElementById('engineField').classList.toggle('hidden', t === 'ELECTRIC_SCOOTER');
+      document.getElementById('batteryField').classList.toggle('hidden', t !== 'ELECTRIC_SCOOTER');
+    }
+
+    async function submitAddVehicle() {
+      const msgEl = document.getElementById('addVehicleMsg');
+      msgEl.innerHTML = '';
+      const body = {
+        action: 'addVehicle', token: STATE.token,
+        vehicleType: document.getElementById('avType').value,
+        make: document.getElementById('avMake').value,
+        model: document.getElementById('avModel').value,
+        plate: document.getElementById('avPlate').value,
+        rate: document.getElementById('avRate').value,
+        colour: document.getElementById('avColour').value,
+        fuelType: document.getElementById('avFuel').value,
+        numSeats: document.getElementById('avSeats').value,
+        kmsTravelled: document.getElementById('avKms').value,
+      };
+      const t = body.vehicleType;
+      if (t === 'ELECTRIC_SCOOTER') body.batteryRange = document.getElementById('avBattery').value;
+      else body.engineCc = document.getElementById('avCc').value;
+      try {
+        const res = await api('/admin', body);
+        msgEl.innerHTML = `<div class="alert alert-success">✓ Vehicle added! ID: #${res.vehicleId}</div>`;
+        toast('Vehicle added successfully!', 'success');
+      } catch (e) {
+        msgEl.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
+    /* ─── My Reservations (Customer) ────────────────────────── */
+    async function loadMyReservations() {
+      const el = document.getElementById('page-myreservations');
+      el.innerHTML = `<div class="page-title">My Bookings</div><div class="page-sub">All your reservations</div>
+  <div id="myResContent"><div style="color:var(--muted)">Loading...</div></div>`;
+      try {
+        const list = await api('/reservations', { action: 'mine', token: STATE.token });
+        if (!list.length) {
+          document.getElementById('myResContent').innerHTML = `<div class="alert alert-info">
+        <i class="fa-solid fa-info-circle"></i> No reservations yet. <button class="btn btn-xs btn-primary" onclick="navigate('vehicles')">Browse Fleet →</button>
+      </div>`; return;
+        }
+        document.getElementById('myResContent').innerHTML = `<div class="grid2">${list.map(r => {
+          const statusClass = { CONFIRMED: 'status-confirmed', CANCELLED: 'status-cancelled', COMPLETED: 'status-completed' }[r.status] || '';
+          const isOverdue = r.status === 'CONFIRMED' && new Date(r.endDate) < new Date();
+          return `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <b>Reservation #${r.id}</b>
+          <span class="status-badge ${isOverdue ? 'status-overdue' : statusClass}">${isOverdue ? '⚠️ OVERDUE' : r.status}</span>
+        </div>
+        <div style="font-size:.87rem;color:var(--muted);line-height:1.9">
+          🚗 Vehicle #${r.vehicleId}<br/>
+          📅 ${r.startDate} → ${r.endDate}<br/>
+          💰 Total: <b style="color:var(--primary2)">₹${r.totalCost.toFixed(2)}</b><br/>
+          ${r.fineAmount > 0 ? `<span style="color:var(--accent)">⚠️ Fine: ₹${r.fineAmount.toFixed(2)}</span><br/>` : ''}
+          ${r.actualReturnDate ? `✅ Returned: ${r.actualReturnDate}` : ''}
+        </div>
+        ${r.status === 'CONFIRMED' ? `<button class="btn btn-danger btn-sm" style="width:100%;justify-content:center;margin-top:12px" onclick="cancelRes(${r.id})">Cancel Reservation</button>` : ''}
+      </div>`;
+        }).join('')}</div>`;
+      } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    /* ─── Profile ────────────────────────────────────────────── */
+    async function loadProfile() {
+      const el = document.getElementById('page-profile');
+      el.innerHTML = `<div class="page-title">My Profile</div><div class="page-sub">Your account details</div>
+  <div id="profileContent"><div style="color:var(--muted)">Loading...</div></div>`;
+      try {
+        const c = await api('/customer', { action: 'me', token: STATE.token });
+        document.getElementById('profileContent').innerHTML = `
+    <div class="card" style="max-width:480px">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));
+             display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700">${c.name[0].toUpperCase()}</div>
+        <div><div style="font-size:1.2rem;font-weight:700">${esc(c.name)}</div>
+             <div style="color:var(--muted);font-size:.9rem">Customer #${c.id}</div>
+             <div style="margin-top:4px">${c.otpVerified ? '<span class="status-badge status-completed">✓ Verified</span>' : '<span class="status-badge status-cancelled">Not Verified</span>'}</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div><div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">Email</div><div>${esc(c.email)}</div></div>
+        <div><div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">Phone</div><div>${esc(c.phone)}</div></div>
+        <div><div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">Driving License</div><div>${esc(c.license)}</div></div>
+      </div>
+    </div>`;
+      } catch (e) { el.innerHTML += `<div class="alert alert-error">${e.message}</div>`; }
+    }
+
+    /* ─── Reserve modal ──────────────────────────────────────── */
+    function openReserve(vehicleId, vehicleName) {
+      currentVehicleId = vehicleId;
+      document.getElementById('reserveModalSub').textContent = vehicleName;
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('resStart').value = today;
+      document.getElementById('resEnd').value = today;
+      document.getElementById('costPreview').classList.add('hidden');
+      document.getElementById('reserveError').classList.add('hidden');
+      document.getElementById('reserveModal').classList.remove('hidden');
+    }
+
+    async function updateCostPreview() {
+      const s = document.getElementById('resStart').value;
+      const e = document.getElementById('resEnd').value;
+      if (!s || !e || e < s) return;
+      try {
+        const res = await api('/reservations', { action: 'check', vehicleId: currentVehicleId, startDate: s, endDate: e });
+        const preview = document.getElementById('costPreview');
+        preview.classList.remove('hidden');
+        const days = Math.floor((new Date(e) - new Date(s)) / (86400000)) + 1;
+        preview.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span>${days} day(s)</span>
+        <span style="font-size:1.1rem;font-weight:700;color:${res.available ? 'var(--primary2)' : 'var(--accent)'}">${res.available ? '✓ Available' : '✗ Not Available'}</span>
+      </div>
+      ${res.available ? `<div style="font-size:1.4rem;font-weight:800;color:var(--primary2);margin-top:8px">₹${res.cost.toFixed(2)} total</div>` : ''}`;
+      } catch (e) { }
+    }
+
+    async function confirmReservation() {
+      const s = document.getElementById('resStart').value;
+      const e = document.getElementById('resEnd').value;
+      const errEl = document.getElementById('reserveError');
+      errEl.classList.add('hidden');
+      if (!s || !e) { errEl.textContent = 'Select both dates'; errEl.classList.remove('hidden'); return; }
+      try {
+        const res = await api('/reservations', { action: 'reserve', token: STATE.token, vehicleId: currentVehicleId, startDate: s, endDate: e });
+        closeModal('reserveModal');
+        toast(`Reservation confirmed! ID: #${res.reservationId} — Total: ₹${res.totalCost.toFixed(2)}`, 'success');
+        navigate('myreservations');
+      } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
+    }
+
+    /* ─── Fine modal ─────────────────────────────────────────── */
+    function openFineModal(rid, startDate, endDate) {
+      currentReservationId = rid;
+      document.getElementById('fineModalSub').textContent = `Reservation #${rid} | Due: ${endDate}`;
+      document.getElementById('fineReturnDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('fineReturnDate').min = endDate;
+      document.getElementById('fineRate').value = '500';
+      document.getElementById('finePreview').classList.add('hidden');
+      document.getElementById('fineModal').classList.remove('hidden');
+      // auto-preview
+      [document.getElementById('fineReturnDate'), document.getElementById('fineRate')].forEach(el =>
+        el.addEventListener('input', () => previewFine(endDate)));
+      previewFine(endDate);
+    }
+
+    function previewFine(dueDate) {
+      const ret = document.getElementById('fineReturnDate').value;
+      const rate = parseFloat(document.getElementById('fineRate').value) || 0;
+      if (!ret) return;
+      const late = Math.max(0, Math.floor((new Date(ret) - new Date(dueDate)) / (86400000)));
+      const fine = late * rate;
+      const preview = document.getElementById('finePreview');
+      preview.classList.remove('hidden');
+      preview.innerHTML = `<b>Days late:</b> ${late}<br/><b>Fine rate:</b> ₹${rate}/day<br/>
+    <b style="font-size:1.1rem;color:${fine > 0 ? 'var(--accent)' : 'var(--green)'}">Total Fine: ₹${fine.toFixed(2)}</b>`;
+    }
+
+    async function submitFine() {
+      const ret = document.getElementById('fineReturnDate').value;
+      const rate = document.getElementById('fineRate').value;
+      try {
+        const res = await api('/reservations', {
+          action: 'markReturn', token: STATE.token,
+          reservationId: currentReservationId, returnDate: ret, fineRatePerDay: rate
+        });
+        closeModal('fineModal');
+        toast(`Vehicle returned. Fine charged: ₹${res.fine.toFixed(2)} (${res.lateDays} days late)`, res.lateDays > 0 ? 'error' : 'success');
+        loadReservations();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    /* ─── Cancel / Flag ──────────────────────────────────────── */
+    async function cancelRes(rid) {
+      if (!confirm('Cancel reservation #' + rid + '?')) return;
+      try {
+        await api('/reservations', { action: 'cancel', token: STATE.token, reservationId: rid });
+        toast('Reservation cancelled.', 'success');
+        currentPage === 'myreservations' ? loadMyReservations() : loadReservations();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function flagOverdue(rid) {
+      const notes = prompt('Add notes for the legal flag (e.g. vehicle not returned, police complaint required):');
+      if (notes === null) return;
+      try {
+        await api('/reservations', { action: 'flagOverdue', token: STATE.token, reservationId: rid, notes });
+        toast('Reservation flagged for legal action!', 'error');
+        loadOverdue();
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    /* ─── Legal Report ───────────────────────────────────────── */
+    async function viewLegalReport(rid) {
+      try {
+        const r = await api('/reservations', { action: 'legalReport', token: STATE.token, reservationId: rid });
+        const content = `
+╔══════════════════════════════════════════════════════════╗
+║       SMART VEHICLE RENTAL PORTAL — LEGAL REPORT        ║
+║              FOR POLICE / LEGAL PROCEEDINGS             ║
+╚══════════════════════════════════════════════════════════╝
+
+Report Date    : ${r.reportDate}
+Reservation ID : #${r.reservationId}
+
+── CUSTOMER DETAILS ──────────────────────────────────────
+Name           : ${r.customerName}
+Phone          : ${r.customerPhone}
+Email          : ${r.customerEmail}
+Driving License: ${r.licenseNumber}
+
+── VEHICLE DETAILS ───────────────────────────────────────
+Type           : ${r.vehicleType}
+Make & Model   : ${r.vehicleMake} ${r.vehicleModel}
+License Plate  : ${r.vehiclePlate}
+
+── RENTAL DETAILS ────────────────────────────────────────
+Rental Start   : ${r.startDate}
+Scheduled End  : ${r.endDate}
+Days Overdue   : ${r.overdueDays}
+Rental Cost    : ₹${r.totalCost.toFixed(2)}
+Fine Accrued   : ₹${r.fineAmount.toFixed(2)}
+
+── DECLARATION ──────────────────────────────────────────
+The above-named customer rented the vehicle and has failed
+to return it ${r.overdueDays} day(s) after the agreed date.
+This report is generated as evidence for police complaint
+/ legal proceedings under applicable law.
+
+Authorized Signature: _________________________
+Date: ${r.reportDate}
+═══════════════════════════════════════════════════════════`;
+        document.getElementById('reportContent').textContent = content;
+        document.getElementById('reportModal').classList.remove('hidden');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function printReport() {
+      const content = document.getElementById('reportContent').textContent;
+      const w = window.open('', '_blank');
+      w.document.write(`<pre style="font-family:monospace;font-size:13px;padding:24px">${content}</pre>`);
+      w.print();
+    }
+
+    /* ─── Overdue check (auto) ───────────────────────────────── */
+    async function checkOverdueAlert() {
+      try {
+        const list = await api('/reservations', { action: 'overdue', token: STATE.token });
+        const badge = document.getElementById('overdueCount');
+        if (badge && list.length > 0) { badge.textContent = list.length; badge.classList.remove('hidden'); }
+        const severe = list.filter(r => Math.floor((new Date() - new Date(r.endDate)) / (86400000)) >= 7);
+        if (severe.length > 0) {
+          toast(`🚨 ${severe.length} vehicle(s) overdue by 7+ days! Check Overdue tab.`, 'error');
+        }
+      } catch (e) { }
+    }
+
+    /* ─── API helper ─────────────────────────────────────────── */
+    async function api(path, body, method) {
+      const opts = { headers: { 'Content-Type': 'application/json' } };
+      if (body && (!method || method === 'POST')) {
+        opts.method = 'POST'; opts.body = JSON.stringify(body);
+      } else {
+        opts.method = method || 'GET';
+      }
+      let res;
+      try {
+        res = await fetch(API + path, opts);
+      } catch (err) {
+        throw new Error('Unable to connect to backend server. Please verify that the Web UI Server is running.');
+      }
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        throw new Error('Server returned an unexpected response (HTTP ' + res.status + ')');
+      }
+      if (data.ok === false || data.error) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    /* ─── UI Helpers ─────────────────────────────────────────── */
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+    }
+
+    function toast(msg, type = 'info') {
+      const container = document.getElementById('toast');
+      const div = document.createElement('div');
+      div.className = `toast-msg toast-${type}`;
+      div.textContent = msg;
+      container.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = '0'; div.style.transform = 'translateX(20px)';
+        div.style.transition = '.3s'; setTimeout(() => div.remove(), 300);
+      }, 3500);
+    }
+
+    function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  </script>
+</body>
+
+</html>
