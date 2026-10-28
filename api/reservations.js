@@ -74,10 +74,20 @@ module.exports = (req, res) => {
       const all = [...store.reservations].sort((a, b) => b.id - a.id);
       return res.status(200).json(all);
     } else if (action === 'cancel') {
+      const session = verifyToken(body.token);
+      if (!session || !(session === 'ADMIN' || session.startsWith('CUSTOMER:'))) {
+        return res.status(401).json({ ok: false, error: 'Not logged in' });
+      }
       const rid = parseInt(body.reservationId, 10);
       const r = store.reservations.find(res => res.id === rid);
       if (!r || r.status !== 'CONFIRMED') {
         return res.status(400).json({ ok: false, error: 'Reservation not found or already cancelled' });
+      }
+      if (session !== 'ADMIN') {
+        const custId = parseInt(session.split(':')[1], 10);
+        if (r.customerId !== custId) {
+          return res.status(403).json({ ok: false, error: 'Not your reservation' });
+        }
       }
       r.status = 'CANCELLED';
       saveStore();

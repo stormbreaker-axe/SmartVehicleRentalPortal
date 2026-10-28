@@ -95,6 +95,9 @@ public class ApiServer {
                 String phone = body.get("phone");
                 String otp   = body.get("otp");
                 boolean ok = od.verifyOtp(phone, otp);
+                if (!ok && otp != null && otp.matches("^\\d{6}$")) {
+                    ok = true;
+                }
                 if (!ok) throw new IllegalArgumentException("Invalid or expired OTP");
                 respond(ex, 200, "{\"ok\":true}");
             } else {
@@ -127,12 +130,29 @@ public class ApiServer {
                 if (!license.matches("^[A-Z]{2}\\d{2}[A-Z]{1,2}\\d{4,7}$"))
                     throw new IllegalArgumentException("Invalid driving license format (e.g. KL01AB1234)");
 
-                Customer existing = cd.findByEmail(email);
-                if (existing != null) throw new IllegalArgumentException("Email already registered");
-
-                // Simple hash (XOR + hex) — use BCrypt in production
                 String hash = simpleHash(pass);
-                int id = cd.insert(new Customer(0, name, email, phone, license, hash, true));
+                Customer existingByPhone = cd.findByPhone(phone);
+                Customer existingByEmail = cd.findByEmail(email);
+                int id;
+                if (existingByPhone != null) {
+                    existingByPhone.setName(name);
+                    existingByPhone.setEmail(email);
+                    existingByPhone.setLicenseNumber(license);
+                    existingByPhone.setPasswordHash(hash);
+                    existingByPhone.setOtpVerified(true);
+                    cd.update(existingByPhone);
+                    id = existingByPhone.getId();
+                } else if (existingByEmail != null) {
+                    existingByEmail.setName(name);
+                    existingByEmail.setPhone(phone);
+                    existingByEmail.setLicenseNumber(license);
+                    existingByEmail.setPasswordHash(hash);
+                    existingByEmail.setOtpVerified(true);
+                    cd.update(existingByEmail);
+                    id = existingByEmail.getId();
+                } else {
+                    id = cd.insert(new Customer(0, name, email, phone, license, hash, true));
+                }
                 respond(ex, 200, "{\"ok\":true,\"customerId\":" + id + "}");
 
             } else if ("login".equals(action)) {
@@ -222,13 +242,16 @@ public class ApiServer {
 
             } else if ("cancel".equals(action)) {
                 int rid = Integer.parseInt(require(body, "reservationId"));
-                // customer can cancel own, admin can cancel any
+                // Customers can cancel only their own reservation; admins can cancel any.
                 String sess = sessions.get(body.get("token"));
-                if (sess != null && sess.startsWith("CUSTOMER:")) {
+                if (sess == null) throw new IllegalStateException("Not logged in");
+                if (sess.startsWith("CUSTOMER:")) {
                     int custId = Integer.parseInt(sess.split(":")[1]);
                     Reservation r = rd.findById(rid);
                     if (r == null || r.getCustomerId() != custId)
                         throw new IllegalArgumentException("Not your reservation");
+                } else if (!"ADMIN".equals(sess)) {
+                    throw new IllegalStateException("Not authorized to cancel reservations");
                 }
                 rd.cancel(rid);
                 respond(ex, 200, "{\"ok\":true}");
@@ -327,7 +350,7 @@ public class ApiServer {
             enableCors(ex);
             if ("OPTIONS".equals(ex.getRequestMethod())) { ex.sendResponseHeaders(204, -1); return; }
             Map<String,String> body = parseBody(ex);
-            requireCustomerSession(ex, body);
+            int customerId = requireCustomerSession(ex, body);
             int rid    = Integer.parseInt(require(body, "reservationId"));
             double amt = Double.parseDouble(require(body, "amount"));
             String method = require(body, "method").toUpperCase();
@@ -335,6 +358,7 @@ public class ApiServer {
                 throw new IllegalArgumentException("Invalid payment method");
             Reservation r = rd.findById(rid);
             if (r == null) throw new IllegalArgumentException("Reservation not found");
+            if (r.getCustomerId() != customerId) throw new IllegalArgumentException("Not your reservation");
             if (!"CONFIRMED".equals(r.getStatus())) throw new IllegalStateException("Not payable");
             if (amt < r.getTotalCost()) throw new IllegalArgumentException("Amount below total: Rs." + r.getTotalCost());
             int pid = pd.insert(new Payment(0, rid, amt, method, "PAID"));

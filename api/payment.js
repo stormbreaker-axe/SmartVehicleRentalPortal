@@ -9,6 +9,7 @@ module.exports = (req, res) => {
     if (!session || !session.startsWith('CUSTOMER:')) {
       return res.status(401).json({ ok: false, error: 'Not logged in as customer' });
     }
+    const custId = parseInt(session.split(':')[1], 10);
     const rid = parseInt(body.reservationId, 10);
     const amt = parseFloat(body.amount);
     const method = String(body.method || '').toUpperCase();
@@ -17,6 +18,7 @@ module.exports = (req, res) => {
     }
     const r = store.reservations.find(res => res.id === rid);
     if (!r) return res.status(404).json({ ok: false, error: 'Reservation not found' });
+    if (r.customerId !== custId) return res.status(403).json({ ok: false, error: 'Not your reservation' });
     if (r.status !== 'CONFIRMED') return res.status(400).json({ ok: false, error: 'Not payable' });
     if (amt < r.totalCost) return res.status(400).json({ ok: false, error: `Amount below total: Rs.${r.totalCost}` });
 

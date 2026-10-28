@@ -20,6 +20,20 @@ public class CustomerDAO {
         throw new SQLException("No generated customer ID");
     }
 
+    public void update(Customer x) throws SQLException {
+        String q = "UPDATE customers SET name=?, email=?, license_number=?, password_hash=?, otp_verified=? WHERE id=?";
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement p = c.prepareStatement(q)) {
+            p.setString(1, x.getName());
+            p.setString(2, x.getEmail());
+            p.setString(3, x.getLicenseNumber());
+            p.setString(4, x.getPasswordHash());
+            p.setBoolean(5, x.isOtpVerified());
+            p.setInt(6, x.getId());
+            p.executeUpdate();
+        }
+    }
+
     public void markOtpVerified(int id) throws SQLException {
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement p = c.prepareStatement("UPDATE customers SET otp_verified=1 WHERE id=?")) {

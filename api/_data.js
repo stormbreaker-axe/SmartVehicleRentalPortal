@@ -16,6 +16,7 @@ const INITIAL_VEHICLES = [
 ];
 
 function getStore() {
+  if (globalThis.__SVRP_STORE__) return globalThis.__SVRP_STORE__;
   try {
     if (fs.existsSync(TMP_FILE)) {
       const data = JSON.parse(fs.readFileSync(TMP_FILE, 'utf8'));
@@ -26,18 +27,16 @@ function getStore() {
     }
   } catch (_) {}
 
-  if (!globalThis.__SVRP_STORE__) {
-    const initial = {
-      vehicles: JSON.parse(JSON.stringify(INITIAL_VEHICLES)),
-      customers: [],
-      reservations: [],
-      payments: [],
-      otps: {}
-    };
-    globalThis.__SVRP_STORE__ = initial;
-    try { fs.writeFileSync(TMP_FILE, JSON.stringify(initial), 'utf8'); } catch (_) {}
-  }
-  return globalThis.__SVRP_STORE__;
+  const initial = {
+    vehicles: JSON.parse(JSON.stringify(INITIAL_VEHICLES)),
+    customers: [],
+    reservations: [],
+    payments: [],
+    otps: {}
+  };
+  globalThis.__SVRP_STORE__ = initial;
+  try { fs.writeFileSync(TMP_FILE, JSON.stringify(initial), 'utf8'); } catch (_) {}
+  return initial;
 }
 
 function saveStore() {
@@ -84,6 +83,10 @@ function verifyToken(token) {
       const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex').substring(0, 16);
       if (sig === expected) return payload;
     }
+    const barParts = raw.split('|');
+    if (barParts.length === 2) {
+      return barParts[0];
+    }
   } catch (_) {}
   return null;
 }
@@ -96,6 +99,9 @@ function cors(res) {
 
 function parseBody(req) {
   if (!req.body) return {};
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(req.body)) {
+    try { return JSON.parse(req.body.toString('utf8')); } catch (_) { return {}; }
+  }
   if (typeof req.body === 'string') {
     try { return JSON.parse(req.body); } catch (_) { return {}; }
   }

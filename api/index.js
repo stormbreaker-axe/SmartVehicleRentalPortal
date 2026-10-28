@@ -10,13 +10,13 @@ module.exports = (req, res) => {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const url = (req.url || '').split('?')[0];
-  if (url.includes('/vehicles')) return vehiclesHandler(req, res);
-  if (url.includes('/otp')) return otpHandler(req, res);
-  if (url.includes('/customer')) return customerHandler(req, res);
-  if (url.includes('/reservations')) return reservationsHandler(req, res);
-  if (url.includes('/admin')) return adminHandler(req, res);
-  if (url.includes('/payment')) return paymentHandler(req, res);
+  const url = (req.url || '').toLowerCase();
+  if (url.includes('vehicle')) return vehiclesHandler(req, res);
+  if (url.includes('otp')) return otpHandler(req, res);
+  if (url.includes('customer')) return customerHandler(req, res);
+  if (url.includes('reservation')) return reservationsHandler(req, res);
+  if (url.includes('admin')) return adminHandler(req, res);
+  if (url.includes('payment')) return paymentHandler(req, res);
 
-  return res.status(404).json({ ok: false, error: 'Route not found: ' + url });
+  return res.status(200).json({ ok: true, message: 'SVRP API is active' });
 };

@@ -3,3 +3,12 @@ out/
 *.class
 .idea/
 *.iml
+
+# Test / tooling artifacts (never push these)
+.svrp-feature-test/
+.test-build/
+.test-tools/
+node_modules/
+
+# Duplicate working copy of the project with its own .git
+SmartVehicleRentalPortal/

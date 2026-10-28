@@ -1448,24 +1448,34 @@
       const phone = document.getElementById('rPhone').value.trim();
       const otp = document.getElementById('otpInput').value.trim();
       if (!otp) { showError('regError', 'Enter OTP'); return; }
+      const pass = document.getElementById('rPass').value;
+      const name = document.getElementById('rName').value.trim();
+      const email = document.getElementById('rEmail').value.trim();
+      const lic = document.getElementById('rLicense').value.trim().toUpperCase();
       try {
-        // Send the signed otpToken back so the server can verify without any memory
         await api('/otp', { action: 'verify', phone, otp, otpToken: _pendingOtpToken });
         // OTP verified — now register
         const res = await api('/customer', {
           action: 'register',
-          name: document.getElementById('rName').value.trim(),
-          email: document.getElementById('rEmail').value.trim(),
+          name,
+          email,
           phone,
-          license: document.getElementById('rLicense').value.trim().toUpperCase(),
-          password: document.getElementById('rPass').value
+          license: lic,
+          password: pass
         });
+        // Cache user credentials locally so login is 100% resilient across serverless restarts
+        try {
+          const userCache = JSON.parse(localStorage.getItem('svrp_user_cache') || '{}');
+          userCache[phone] = { id: res.customerId, name, email, phone, license: lic, password: pass };
+          localStorage.setItem('svrp_user_cache', JSON.stringify(userCache));
+        } catch (_) {}
         // Mark OTP verified
         await api('/customer', { action: 'markVerified', customerId: res.customerId });
         _pendingOtpToken = null;
         toast('Registration successful! Please sign in.', 'success');
         switchTab('login');
         document.getElementById('loginPhone').value = phone;
+        document.getElementById('loginPass').value = pass;
       } catch (e) { showError('regError', e.message); }
     }
 
@@ -1473,8 +1483,15 @@
       clearErrors();
       const phone = document.getElementById('loginPhone').value.trim();
       const pass = document.getElementById('loginPass').value;
+      if (!phone || !pass) { showError('loginError', 'Phone and password are required'); return; }
       try {
-        const res = await api('/customer', { action: 'login', phone, password: pass });
+        let cached = null;
+        try {
+          const userCache = JSON.parse(localStorage.getItem('svrp_user_cache') || '{}');
+          cached = userCache[phone] || null;
+        } catch (_) {}
+
+        const res = await api('/customer', { action: 'login', phone, password: pass, customerData: cached });
         STATE = { role: 'customer', token: res.token, customerId: res.customerId, userName: res.name };
         sessionStorage.setItem('svrp_session', JSON.stringify(STATE));
         closeModal('authModal');
