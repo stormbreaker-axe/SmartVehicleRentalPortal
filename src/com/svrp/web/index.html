@@ -1605,9 +1605,10 @@
   <div id="dashOverdue"></div>`;
       try {
         const localVehicles = getLocalVehicles();
+        const localResForDash = getLocalReservations();
         const [apiVehicles, reservations, customers] = await Promise.all([
           localVehicles.length > 0 ? api('/vehicles', { customVehicles: localVehicles }).catch(() => api('/vehicles', null, 'GET')) : api('/vehicles', null, 'GET'),
-          api('/reservations', { action: 'all', token: STATE.token }),
+          api('/reservations', { action: 'all', token: STATE.token, cachedReservations: localResForDash }),
           api('/customer', { action: 'all', token: STATE.token })
         ]);
         const map = new Map();
@@ -1616,11 +1617,25 @@
           if (!map.has(v.id)) map.set(v.id, v);
           else map.set(v.id, Object.assign({}, map.get(v.id), v));
         });
+        const todayStr = new Date().toISOString().slice(0, 10);
         const vehicles = Array.from(map.values());
         const avail = vehicles.filter(v => v.available).length;
         const confirmed = reservations.filter(r => r.status === 'CONFIRMED').length;
-        const revenue = reservations.filter(r => r.status === 'COMPLETED').reduce((s, r) => s + r.totalCost, 0);
-        const overdue = reservations.filter(r => r.status === 'CONFIRMED' && new Date(r.endDate) < new Date() && !r.actualReturnDate);
+        const revenue = reservations.filter(r => r.status === 'COMPLETED').reduce((s, r) => s + (r.totalCost || 0), 0);
+        const overdue = reservations.filter(r => r.status === 'CONFIRMED' && r.endDate < todayStr && !r.actualReturnDate);
+
+        // Keep local cache fresh with server truth (reflects any customer cancels/returns)
+        if (Array.isArray(reservations)) {
+          localStorage.setItem('svrp_reservations', JSON.stringify(reservations));
+        }
+
+        // Sync overdue badge
+        const badge = document.getElementById('overdueCount');
+        if (badge) {
+          badge.textContent = overdue.length;
+          badge.classList.toggle('hidden', overdue.length === 0);
+        }
+
         document.getElementById('dashStats').innerHTML = `
       <div class="stat-card"><div class="icon" style="background:rgba(108,99,255,.15);color:var(--primary)"><i class="fa-solid fa-car"></i></div>
         <div class="val">${vehicles.length}</div><div class="lbl">Total Vehicles</div></div>
@@ -1813,22 +1828,34 @@
     <th>ID</th><th>Customer</th><th>Vehicle</th><th>Dates</th><th>Cost</th><th>Fine</th><th>Status</th><th>Actions</th>
   </tr></thead><tbody id="resBody"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table></div>`;
       try {
-        let list = [];
-        try {
-          list = await api('/reservations', { action: 'all', token: STATE.token });
-        } catch (_) {}
         const localList = getLocalReservations();
+        let serverList = [];
+        try {
+          // Send local cache to server so it can rehydrate cold containers
+          serverList = await api('/reservations', { action: 'all', token: STATE.token, cachedReservations: localList });
+        } catch (_) {
+          serverList = [];
+        }
+
+        // Server is authoritative — start from server data
         const map = new Map();
-        list.forEach(r => map.set(r.id, r));
+        serverList.forEach(r => map.set(r.id, r));
+
+        // Only add LOCAL entries that the server doesn't know about (new unseen reservations)
         localList.forEach(r => {
-          if (!map.has(r.id)) map.set(r.id, r);
-          else map.set(r.id, Object.assign({}, map.get(r.id), r));
+          if (!map.has(r.id)) {
+            // Only add if status is CONFIRMED (don't re-add cancelled/completed that server dropped)
+            if (r.status === 'CONFIRMED') map.set(r.id, r);
+          }
         });
+
         const combined = Array.from(map.values()).sort((a, b) => b.id - a.id);
+        // Update local cache with server-authoritative data
         localStorage.setItem('svrp_reservations', JSON.stringify(combined));
 
+        const todayStr = new Date().toISOString().slice(0, 10);
         document.getElementById('resBody').innerHTML = combined.map(r => {
-          const isOverdue = r.status === 'CONFIRMED' && new Date(r.endDate) < new Date() && !r.actualReturnDate;
+          const isOverdue = r.status === 'CONFIRMED' && r.endDate < todayStr && !r.actualReturnDate;
           const statusClass = { CONFIRMED: 'status-confirmed', CANCELLED: 'status-cancelled', COMPLETED: 'status-completed' }[r.status] || '';
           return `<tr>
         <td>#${r.id}</td><td>#${r.customerId}</td><td>#${r.vehicleId}</td>
@@ -1859,17 +1886,16 @@
   <div class="page-sub">Vehicles not returned past their due date</div>
   <div id="overdueContent"><div style="color:var(--muted)">Loading...</div></div>`;
       try {
-        let overdue = [];
-        try {
-          overdue = await api('/reservations', { action: 'overdue', token: STATE.token });
-        } catch (_) {}
         const localList = getLocalReservations();
-        const today = new Date().toISOString().split('T')[0];
-        localList.forEach(r => {
-          if (r.status === 'CONFIRMED' && r.endDate < today && !r.actualReturnDate && !r.overdueFlagged) {
-            if (!overdue.some(o => o.id === r.id)) overdue.push(r);
-          }
-        });
+        let serverOverdue = [];
+        try {
+          serverOverdue = await api('/reservations', { action: 'overdue', token: STATE.token, cachedReservations: localList });
+        } catch (_) {}
+
+        // Use server-authoritative overdue list — don't inject local CONFIRMED entries
+        // because the server (after rehydration via cachedReservations) is the truth
+        const overdue = serverOverdue;
+
         const severe = overdue.filter(r => Math.floor((new Date() - new Date(r.endDate)) / (86400000)) >= 7);
         // Update badge
         const badge = document.getElementById('overdueCount');
@@ -2043,16 +2069,17 @@
       el.innerHTML = `<div class="page-title">My Bookings</div><div class="page-sub">All your reservations</div>
   <div id="myResContent"><div style="color:var(--muted)">Loading...</div></div>`;
       try {
+        const localList = getLocalReservations().filter(r => r.customerId === STATE.customerId);
         let list = [];
         try {
-          list = await api('/reservations', { action: 'mine', token: STATE.token });
+          list = await api('/reservations', { action: 'mine', token: STATE.token, cachedReservations: localList });
         } catch (_) {}
-        const localList = getLocalReservations().filter(r => r.customerId === STATE.customerId);
+        // Server is authoritative — start from server data
         const map = new Map();
         list.forEach(r => map.set(r.id, r));
+        // Only add local entries the server doesn't know about (unseen new reservations)
         localList.forEach(r => {
-          if (!map.has(r.id)) map.set(r.id, r);
-          else map.set(r.id, Object.assign({}, map.get(r.id), r));
+          if (!map.has(r.id) && r.status === 'CONFIRMED') map.set(r.id, r);
         });
         const combined = Array.from(map.values()).sort((a, b) => b.id - a.id);
         if (!combined.length) {
@@ -2060,9 +2087,10 @@
         <i class="fa-solid fa-info-circle"></i> No reservations yet. <button class="btn btn-xs btn-primary" onclick="navigate('vehicles')">Browse Fleet →</button>
       </div>`; return;
         }
+        const todayStr = new Date().toISOString().slice(0, 10);
         document.getElementById('myResContent').innerHTML = `<div class="grid2">${combined.map(r => {
           const statusClass = { CONFIRMED: 'status-confirmed', CANCELLED: 'status-cancelled', COMPLETED: 'status-completed' }[r.status] || '';
-          const isOverdue = r.status === 'CONFIRMED' && new Date(r.endDate) < new Date();
+          const isOverdue = r.status === 'CONFIRMED' && r.endDate < todayStr;
           return `<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <b>Reservation #${r.id}</b>
@@ -2204,7 +2232,8 @@
       try {
         const res = await api('/reservations', {
           action: 'markReturn', token: STATE.token,
-          reservationId: rid, returnDate: ret, fineRatePerDay: rate
+          reservationId: rid, returnDate: ret, fineRatePerDay: rate,
+          cachedReservations: getLocalReservations()
         });
         updateLocalReservation(rid, {
           status: 'COMPLETED',
@@ -2222,7 +2251,7 @@
     async function cancelRes(rid) {
       if (!confirm('Cancel reservation #' + rid + '?')) return;
       try {
-        await api('/reservations', { action: 'cancel', token: STATE.token, reservationId: rid });
+        await api('/reservations', { action: 'cancel', token: STATE.token, reservationId: rid, cachedReservations: getLocalReservations() });
         updateLocalReservation(rid, { status: 'CANCELLED' });
         toast('Reservation cancelled.', 'success');
         currentPage === 'myreservations' ? loadMyReservations() : loadReservations();
@@ -2233,7 +2262,7 @@
       const notes = prompt('Add notes for the legal flag (e.g. vehicle not returned, police complaint required):');
       if (notes === null) return;
       try {
-        await api('/reservations', { action: 'flagOverdue', token: STATE.token, reservationId: rid, notes });
+        await api('/reservations', { action: 'flagOverdue', token: STATE.token, reservationId: rid, notes, cachedReservations: getLocalReservations() });
         updateLocalReservation(rid, { overdueFlagged: true });
         toast('Reservation flagged for legal action!', 'error');
         loadOverdue();
@@ -2244,7 +2273,7 @@
     /* ─── Legal Report ───────────────────────────────────────── */
     async function viewLegalReport(rid) {
       try {
-        const r = await api('/reservations', { action: 'legalReport', token: STATE.token, reservationId: rid });
+        const r = await api('/reservations', { action: 'legalReport', token: STATE.token, reservationId: rid, cachedReservations: getLocalReservations() });
         const content = `
 ╔══════════════════════════════════════════════════════════╗
 ║       SMART VEHICLE RENTAL PORTAL — LEGAL REPORT        ║
@@ -2296,9 +2325,11 @@ Date: ${r.reportDate}
     /* ─── Overdue check (auto) ───────────────────────────────── */
     async function checkOverdueAlert() {
       try {
-        const list = await api('/reservations', { action: 'overdue', token: STATE.token });
+        const localList = getLocalReservations();
+        const list = await api('/reservations', { action: 'overdue', token: STATE.token, cachedReservations: localList });
         const badge = document.getElementById('overdueCount');
         if (badge && list.length > 0) { badge.textContent = list.length; badge.classList.remove('hidden'); }
+        else if (badge) { badge.textContent = '0'; badge.classList.add('hidden'); }
         const severe = list.filter(r => Math.floor((new Date() - new Date(r.endDate)) / (86400000)) >= 7);
         if (severe.length > 0) {
           toast(`🚨 ${severe.length} vehicle(s) overdue by 7+ days! Check Overdue tab.`, 'error');

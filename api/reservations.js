@@ -1,11 +1,38 @@
 const { store, saveStore, verifyToken, cors, parseBody } = require('./_data');
 
+// Rehydrate reservations from client-side cache so cold containers never lose data
+function rehydrateReservations(body) {
+  if (!Array.isArray(body.cachedReservations)) return;
+  store.reservations = store.reservations || [];
+  body.cachedReservations.forEach(cached => {
+    const existing = store.reservations.find(r => r.id === cached.id);
+    if (!existing) {
+      store.reservations.push(cached);
+    } else {
+      // If either server or client marked it CANCELLED or COMPLETED, that final status wins
+      // Never allow a cancelled or completed reservation to revert to CONFIRMED
+      if (existing.status === 'CANCELLED' || cached.status === 'CANCELLED') {
+        existing.status = 'CANCELLED';
+      } else if (existing.status === 'COMPLETED' || cached.status === 'COMPLETED') {
+        existing.status = 'COMPLETED';
+        if (cached.fineAmount !== undefined) existing.fineAmount = cached.fineAmount;
+        if (cached.actualReturnDate) existing.actualReturnDate = cached.actualReturnDate;
+      }
+      if (cached.overdueFlagged) existing.overdueFlagged = true;
+    }
+  });
+  saveStore();
+}
+
 module.exports = (req, res) => {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   try {
     const body = parseBody(req);
     const action = body.action || '';
+
+    // Always rehydrate from client cache before processing
+    rehydrateReservations(body);
 
     if (action === 'reserve') {
       const session = verifyToken(body.token);
@@ -36,7 +63,8 @@ module.exports = (req, res) => {
       const d1 = new Date(s), d2 = new Date(e);
       const days = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
       const cost = v.rate * days;
-      const rid = store.reservations.length + 1;
+      const maxId = store.reservations.length > 0 ? Math.max(...store.reservations.map(r => r.id || 0)) : 0;
+      const rid = maxId + 1;
       const reservation = {
         id: rid,
         customerId: custId,
@@ -135,7 +163,7 @@ module.exports = (req, res) => {
     } else if (action === 'overdue') {
       if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
       const today = new Date().toISOString().slice(0, 10);
-      const list = store.reservations.filter(r => r.status === 'CONFIRMED' && r.endDate < today && !r.actualReturnDate && !r.overdueFlagged);
+      const list = store.reservations.filter(r => r.status === 'CONFIRMED' && r.endDate < today && !r.actualReturnDate);
       return res.status(200).json(list);
     } else if (action === 'severelyOverdue') {
       if (verifyToken(body.token) !== 'ADMIN') return res.status(403).json({ ok: false, error: 'Not logged in as admin' });
